@@ -13,23 +13,76 @@
 #include <sstream>
 #include <unistd.h>
 
+#include<typeinfo>
+
 #define BUFFER_SIZE 512
-/*
-void socket_cammount(int argc, char *argv[]){
-    int s;
 
-    struct sockaddr_in sain; //sinだと三角関数のsinと混じってしまったので
-    struct hostent *dst;
+using namespace std;
 
-    sain.sin_family=AF_INET;
-    sain.sin_addr.s_addr=*((in_addr_t *)*dst->h_addr_list);
-    sain.sin_port=htons(atoi(argv[2]));
-    
-    connect(s, (const struct sockaddr *)&sain, sizeof(sain));
+string make_control_command(int ps, int pp, int ts, int tp);
+extern int ps, pp, ts, tp;
 
-    recv(s, )
+
+bool check_connection(int argc, char *argv[], int s, struct hostent* dst){
+    // 正しい引数で実行してね(./Main cammount 4000)
+    if(argc<3){
+		fprintf(stderr, "usage: %s hostname port\n", argv[0]);
+		return false;
+	}
+    // 繋がらねえよ
+	if((s=socket(PF_INET, SOCK_STREAM, 0))==-1){
+		perror("Can't create a socket.\n");
+		return false;
+	}
+    // 繋がらねえよ
+    if(!(dst=gethostbyname(argv[1]))){
+		fprintf(stderr, "Can't resolve the name.\n");
+		return false;
+	}
+    return true;
 }
-*/
+
+int connection_head(int argc, char *argv[]){
+
+    int s;
+    char rcv_buffer[BUFFER_SIZE];
+    struct sockaddr_in sin;
+    struct hostent* dst;
+
+    // 接続の確認
+    bool connection_flag = check_connection(argc, argv, s, dst);
+    if(!connection_flag) return -1;
+
+    sin.sin_family=AF_INET;
+	sin.sin_addr.s_addr=*((in_addr_t *)*dst->h_addr_list);
+	sin.sin_port=htons(atoi(argv[2]));
+
+    connect(s, (const struct sockaddr *)&sin, sizeof(sin));
+    recv(s, rcv_buffer, BUFFER_SIZE, 0);
+    printf("%s", rcv_buffer);
+    /*
+    ### PAN-TILT CONTROLLER
+    ### v3.5.0, (C)2010-2017 FLIR Systems, Inc., All Rights Reserved
+    Initializing...*
+    */
+
+    while(true){
+        if(ps==5000)
+        {
+            break;
+        }
+        string buffer_str = make_control_command(ps, pp, ts, tp);
+        auto buffer = buffer_str.c_str();
+        if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
+		    fprintf(stderr, "Can't sendto from the socket.\n");
+		    return 1;
+	    }
+        usleep(0.5 *1000000);
+    }
+    return 0;
+
+}
+
 int main(int argc, char *argv[]){
 
     std::ifstream ifs("test.csv");
@@ -43,7 +96,7 @@ int main(int argc, char *argv[]){
 
 	int			s;
     //char			buffer[BUFFER_SIZE];
-    char buffer[]={'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
+    //char buffer[]={'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
     char			rcv_buffer[BUFFER_SIZE];
 	struct sockaddr_in	sin;
 	struct hostent		*dst;
@@ -62,6 +115,7 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "Can't resolve the name.\n");
 		return 1;
 	}
+
 
 	sin.sin_family=AF_INET;
 	sin.sin_addr.s_addr=*((in_addr_t *)*dst->h_addr_list);
@@ -107,6 +161,7 @@ int main(int argc, char *argv[]){
         {
             break;
         }
+        /*
         std::string psstr, ppstr, tsstr, tpstr;
         psstr=std::to_string(ps);
         ppstr=std::to_string(pp);
@@ -160,7 +215,14 @@ int main(int argc, char *argv[]){
                 }
             }
         }
+
         std::cout << buffer << std::endl;
+        */
+        string buffer_str = make_control_command(ps, pp, ts, tp);
+        auto buffer = buffer_str.c_str();
+        std::cout << buffer << endl;
+
+
 /*
     buffer[2]='2';
     buffer[3]='5';
@@ -169,13 +231,13 @@ int main(int argc, char *argv[]){
     buffer[6]='\n';
     buffer[7]=0;
 	*/
-        if(sendto(s, buffer, strlen(buffer), 0,
-			  (struct sockaddr *)&sin, sizeof(sin))==-1){
+        if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
 		    fprintf(stderr, "Can't sendto from the socket.\n");
 		    return 1;
 	    }
         usleep(0.5 *1000000);
     }
+
     close(s);
 	return 0;
 }
