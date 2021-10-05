@@ -5,14 +5,12 @@
 #include <math.h>
 #include <thread>
 
-
-void camera_thread(void);
+#include "./fove/camera.h"
 
 
 
 int main(void){
-    std::thread cam_thread(camera_thread);
-    cam_thread.join();
-    std::cout << "hello" << std::endl;
+    EyeCamera eye_camera(640, 280, "Fove Eyes: Fove Eyes");
+    eye_camera.capture();
     return 0;
 }

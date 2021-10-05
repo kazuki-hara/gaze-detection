@@ -8,12 +8,12 @@ set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs")
 # ここに.cppファイル
 set(SOURCES
     main.cpp
-    ./camera/capture.cpp
+    ./fove/camera.cpp
 )
 
 # ここに.hファイル
 set(HEADERS
-    # main.h
+    ./fove/camera.h
 )
 
 # Mainという実行ファイルを生成
