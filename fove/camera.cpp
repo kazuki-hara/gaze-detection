@@ -3,12 +3,33 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <tuple>
 #include "camera.h"
+#include "./../gaze/gaze.h"
 
 cv::Mat frame;
 cv::Mat l_frame;
 cv::Mat r_frame;
 double ratio = 0.5;
+
+std::tuple<cv::Mat, cv::Mat> get_pupil_marked_image(cv::Mat frame){
+    EyeInfoGetter eyeinfo;
+    std::tuple<cv::Mat, cv::Mat> images = eyeinfo.convert_image(frame);
+
+    // 左目
+    cv::Mat left = std::get<0>(images);
+    eyeinfo.preprocess(left);
+    std::vector<cv::Vec3f> left_circles = eyeinfo.make_hough_circle(left);
+    cv::Mat left_circled_image = eyeinfo.draw_circles(left, left_circles);
+
+    // 右目
+    cv::Mat right = std::get<1>(images);
+    eyeinfo.preprocess(right);
+    std::vector<cv::Vec3f> right_circles = eyeinfo.make_hough_circle(right);
+    cv::Mat right_circled_image = eyeinfo.draw_circles(right, right_circles);
+
+    return std::make_tuple(left_circled_image, right_circled_image);
+}
 
 
 EyeCamera::EyeCamera(const int h, const int w, const char* name):
@@ -22,15 +43,17 @@ EyeCamera::~EyeCamera(void){}
 
 
 void EyeCamera::capture(void){
-    int i = 1;
-    int save = 0;
+    int count = 0;
     cv::VideoCapture cap(1);
     if(!cap.isOpened()) return;
-    cvNamedWindow( "Window" );
     while(cap.read(frame))//無限ループ
     {
-        cv::imshow("Fove Eyes", frame);//画像を表示．
-        const int key = cv::waitKey(1);
+        cv::Mat right;
+        cv::Mat left;
+        std::tuple<cv::Mat, cv::Mat> images = get_pupil_marked_image(frame);
+        left = std::get<0>(images);
+        cv::imshow("Fove Eyes", left);//画像を表示．
+        int key = cv::waitKey(1);
         if(key == 'q'/*113*/)//qボタンが押されたとき
         {
             std::cout << frame.size() << std::endl;
@@ -39,18 +62,14 @@ void EyeCamera::capture(void){
         else if(key == 115/*115*/)//sが押されたとき
         {
             //フレーム画像を保存する．
-            save = 1;
-            std::cout << "start saving" << std::endl;
-        }
-        if(true){
             std::stringstream ss;
-            ss << "./../image/" << i << ".png";
-            cv::imwrite(ss.str(), frame);
+            ss << "./../image/" << count << ".png";
+            cv::imwrite(ss.str(), left);
             std::cout << ss.str() << std::endl;
-            i += 1;
+            count++;
         }
     }
     
     cv::destroyAllWindows();
-    return;
 }
+
