@@ -3,7 +3,7 @@
 
 #include "gaze.h"
 
-#define image_dir "./../image/"
+#define image_dir "./../../data/image/"
 
 
 int main(void){

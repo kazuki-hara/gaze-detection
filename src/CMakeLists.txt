@@ -19,6 +19,7 @@ set(HEADERS
     ./fove/camera.h
     ./gaze/gaze.h
     ./fove/display.h
+    ./main.h
 )
 
 # Mainという実行ファイルを生成

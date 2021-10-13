@@ -13,7 +13,7 @@ static double ii = 0.0;
 // ディスプレイまでの距離をピクセルの値に合わせた、ディスプレイが5.8インチ、ディスプレイまでの距離が4.05cm、解像度2560×1440から計算した
 double dx = EYE_DISP_X * 4.05 / 3.21, dy = EYE_DISP_Y * 4.05 / 3.21;
 
-cv::Mat input_image;
+//cv::Mat input_image;
 
 double x=0;
 double y=0;
@@ -41,9 +41,9 @@ Display::Display(int h, int w, int argc, char* argv[]):
     height(h),
     width(w)
     {
-        cv::Mat image=cv::imread("./../display_test.jpeg", 1);
-        resize(image, image, cv::Size(), DISP_WIDTH/image.cols, DISP_HEIGHT/image.rows);
-        cv::cvtColor(image, input_image, cv::COLOR_BGR2RGB);
+        //cv::Mat image=cv::imread("./../display_test.jpeg", 1);
+        //resize(image, image, cv::Size(), DISP_WIDTH/image.cols, DISP_HEIGHT/image.rows);
+        //cv::cvtColor(image, input_image, cv::COLOR_BGR2RGB);
         
         glutInit(&argc, argv);
         glutInitDisplayMode(GLUT_RGBA);
