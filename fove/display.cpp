@@ -1,9 +1,10 @@
 #include <tuple>
-#include <time.h>
 #include <iostream>
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include "display.h"
+#include "./../main.h"
+#include "camera.h"
 
 bool disp_on_Fove = true;
 static double ex[2] = {-3.0, 3.0}, ey = 0.0, ez = 0.0, cx[2] = {-3.0, 3.0}, cy = 0.0, cz = 0.0;
@@ -13,6 +14,12 @@ static double ii = 0.0;
 double dx = EYE_DISP_X * 4.05 / 3.21, dy = EYE_DISP_Y * 4.05 / 3.21;
 
 cv::Mat input_image;
+
+double x=0;
+double y=0;
+
+double Display::passed;
+
 
 void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)
 {
@@ -53,20 +60,20 @@ Display::~Display(void){}
 
 void Display::my_display_func(void){
     glClear(GL_COLOR_BUFFER_BIT);
-
+    glColor3d(1.0, 0.0, 1.0);
     // 左目
     glViewport(0, 0, DISP_WIDTH/2, DISP_HEIGHT);
     display_for_one_eye(0);
-    glColor3d(1.0, 0.0, 1.0);
+    //glColor3d(1.0, 0.0, 1.0);
     // shiten(screen_left[temp_num].x*dx, screen_left[temp_num].y*dy);  // 左目の視点表示 *視点表示したくない場合はこの行をコメントアウト
 
     // 右目
     glViewport(DISP_WIDTH/2, 0, DISP_WIDTH/2, DISP_HEIGHT);
     display_for_one_eye(1);
-    glColor3d(0.0, 1.0, 1.0);
+    //glColor3d(0.0, 1.0, 1.0);
     // shiten(screen_right[temp_num].x*dx, screen_right[temp_num].y*dy);  // 右目の視点表示 *視点表示したくない場合はこの行をコメントアウト
-
-    glFlush();
+    glutPostRedisplay();
+    glutSwapBuffers();
 }
 
 void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1が右
@@ -95,8 +102,12 @@ void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0�
     glOrtho(-EYE_DISP_X, EYE_DISP_X, -EYE_DISP_Y, EYE_DISP_Y, -1.0, 1.0);
 
     // 画像と図形の表示
-    //display_image(input_image);
-    //display_polygon();
+    //show_image(input_image);
+    //show_polygon();
+    passed = get_passed_time();
+    if(passed <= 30.0){
+        calibration();
+    }
 }
 
 void Display::show_image(cv::Mat image){
@@ -107,12 +118,48 @@ void Display::show_image(cv::Mat image){
     put_2d_image_cv_ishikawa(0, 0, image.size().width, image.size().height, 1.0);
 }
 
-void Display::show_polygon(void){
+void Display::show_polygon(void){    
     glBegin(GL_POLYGON);
-    glVertex2d(0, 0);
-    glVertex2d(0, 100);
-    glVertex2d(100, 100);
-    glVertex2d(100,0);
+    glVertex2d(x-CALIB_SQURE, y-CALIB_SQURE);
+    glVertex2d(x-CALIB_SQURE, y+CALIB_SQURE);
+    glVertex2d(x+CALIB_SQURE, y+CALIB_SQURE);
+    glVertex2d(x+CALIB_SQURE, y-CALIB_SQURE);
     glEnd();
 }
 
+void Display::calibration(void){
+    if(3.0 < passed && passed <= 8.0){
+        show_polygon();
+    }else if(8.0 < passed && passed <= 10.0){
+        y = (passed-8.0)*100; // 0->200
+        show_polygon();
+    }else if(10.0 < passed && passed <= 15.0){
+        x = 0.0;
+        y = 200.0;
+        show_polygon();
+    }else if(15.0 < passed && passed <= 17.0){
+        x = (passed-15.0)*100; // 0->200
+        y = 200-(passed-15.0)*100; // 200->0
+        show_polygon();
+    }else if(17.0 < passed && passed <= 22.0){
+        x = 200.0;
+        y = 0.0;
+        show_polygon();
+    }else if(22.0 < passed && passed <= 24.0){
+        x = 200 - (passed-22.0)*100; // 200->0
+        y = 0 - (passed-22.0)*100; // 0->-200
+        show_polygon();
+    }else if(24.0 < passed && passed <= 29.0){
+        x = 0.0;
+        y = -200.0;
+        show_polygon();
+    }else if(29.0 < passed && passed <= 31.0){
+        x = 0 - (passed-29.0)*100; // 0->-200
+        y = -200 + (passed-29.0)*100; // -200->0
+        show_polygon();
+    }else if(31.0 < passed && passed <= 36.0){
+        x = -200.0;
+        y = 0.0;
+        show_polygon();
+    }
+}

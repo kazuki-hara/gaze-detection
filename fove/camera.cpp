@@ -10,7 +10,26 @@
 cv::Mat frame;
 cv::Mat l_frame;
 cv::Mat r_frame;
-double ratio = 0.5;
+
+
+std::vector<cv::Vec3f> left_circles;
+std::vector<cv::Vec3f> right_circles;
+
+std::tuple<double, double, double, double> get_gaze_info(void){
+    double lx,ly, rx, ry;
+    if(left_circles.size() == 1 && right_circles.size() ==1){
+        lx = (double)left_circles[0][0];
+        ly = (double)left_circles[0][1];
+        rx = (double)right_circles[0][0];
+        ry = (double)right_circles[0][1];
+    }else{
+        lx = -1;
+        ly = -1;
+        rx = -1;
+        ry = -1;
+    }
+    return std::make_tuple(lx, ly, rx, ry);
+}
 
 std::tuple<cv::Mat, cv::Mat> get_pupil_marked_image(cv::Mat frame){
     EyeInfoGetter eyeinfo;
@@ -19,13 +38,13 @@ std::tuple<cv::Mat, cv::Mat> get_pupil_marked_image(cv::Mat frame){
     // 左目
     cv::Mat left = std::get<0>(images);
     eyeinfo.preprocess(left);
-    std::vector<cv::Vec3f> left_circles = eyeinfo.make_hough_circle(left);
+    left_circles = eyeinfo.make_hough_circle(left);
     cv::Mat left_circled_image = eyeinfo.draw_circles(left, left_circles);
 
     // 右目
     cv::Mat right = std::get<1>(images);
     eyeinfo.preprocess(right);
-    std::vector<cv::Vec3f> right_circles = eyeinfo.make_hough_circle(right);
+    right_circles = eyeinfo.make_hough_circle(right);
     cv::Mat right_circled_image = eyeinfo.draw_circles(right, right_circles);
 
     return std::make_tuple(left_circled_image, right_circled_image);

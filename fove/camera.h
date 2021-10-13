@@ -1,4 +1,5 @@
 #include <opencv2/opencv.hpp>
+#include <tuple>
 
 class EyeCamera{
     public:
@@ -11,8 +12,11 @@ class EyeCamera{
         const int height;
         const int width;
         const char* dev_name;
+        static double passed;
 
     private:
         cv::Mat frame;
 
 };
+
+std::tuple<double, double, double, double> get_gaze_info(void);
