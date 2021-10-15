@@ -128,7 +128,9 @@ void Display::show_polygon(void){
 }
 
 void Display::calibration(void){
-    if(3.0 < passed && passed <= 8.0){
+    if(0.0 < passed && passed <= 8.0){
+        x = 0.0;
+        y = 0.0;
         show_polygon();
     }else if(8.0 < passed && passed <= 10.0){
         y = (passed-8.0)*100; // 0->200
@@ -157,7 +159,7 @@ void Display::calibration(void){
         x = 0 - (passed-29.0)*100; // 0->-200
         y = -200 + (passed-29.0)*100; // -200->0
         show_polygon();
-    }else if(31.0 < passed && passed <= 36.0){
+    }else{
         x = -200.0;
         y = 0.0;
         show_polygon();

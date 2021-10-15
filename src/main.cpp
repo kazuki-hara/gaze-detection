@@ -20,7 +20,7 @@
 std::chrono::system_clock::time_point  start, now;
 double msec;
 
-double lx=0,ly=0,rx=0,ry=0;
+
 
 
 bool console_print = true;
@@ -29,8 +29,7 @@ bool console_print = true;
 // データ出力先
 std::string output_dir = "./test/";
 FILE* test;
-FILE* gaze_row_output;
-FILE* gaze_output;
+
 
 // foveのカメラから目の画像を取得して色々画像処理するスレッド (OpenCV)
 void fove_camera(void){
@@ -55,6 +54,7 @@ void record_passed_time(void){
 // パラメータ管理のスレッド 現状は視線方向のみ管理　
 void record_params(void){
     double prev_time = get_passed_time();
+    double lx=0,ly=0,rx=0,ry=0;
     while(true){
         double this_time = get_passed_time();
         if(this_time - prev_time > 0.001){
@@ -63,11 +63,13 @@ void record_params(void){
             ly = std::get<1>(gaze_info);
             rx = std::get<2>(gaze_info);
             ry = std::get<3>(gaze_info);
+            /*
             if(lx != -1 && ly != -1 && rx != -1 && ry != -1 && console_print){
-                std::cout << lx << " " << ly << " " << rx << " " << ry << " " << get_passed_time() << std::endl;
+                //std::cout << lx << " " << ly << " " << rx << " " << ry << " " << get_passed_time() << std::endl;
                 fprintf(gaze_output, "%f %f %f %f %f\n", lx, ly, rx, ry, get_passed_time());
             }
             fprintf(gaze_row_output, "%f %f %f %f %f\n", lx, ly, rx, ry, get_passed_time());
+            */
             prev_time = this_time;
         }
     }
@@ -79,9 +81,6 @@ double get_passed_time(void){
 }
 
 int main(int argc, char *argv[]){
-    gaze_row_output = fopen("/share/home/hara/workspace/fove/data/gaze/gaze_row_data.txt", "w");
-    gaze_output = fopen("/share/home/hara/workspace/fove/data/gaze/gaze.txt", "w");
-
     start = std::chrono::system_clock::now();
     std::thread fove_camera_thread(fove_camera);
     std::thread fove_display_thread(fove_display, argc, argv);
@@ -94,9 +93,7 @@ int main(int argc, char *argv[]){
     params_thread.detach();
     
     while(true){
-        if(get_passed_time() > 40){
-            fclose(gaze_output);
-            fclose(gaze_row_output);
+        if(get_passed_time() > 50){
             return 0;
         }
     }
