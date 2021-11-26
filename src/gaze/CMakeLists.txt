@@ -7,22 +7,13 @@ set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs")
 
 # ここに.cppファイル
 set(SOURCES
-    main.cpp
-    ./fove/camera.cpp
-    ./gaze/gaze.cpp
-    ./fove/display.cpp
-    #./gaze/gaze_main.cpp
-    #./utils/utils.cpp
-    #./utils/utils_main.cpp
+    ./gaze.cpp
+    ./gaze_main.cpp
 )
 
 # ここに.hファイル
 set(HEADERS
-    ./fove/camera.h
-    ./gaze/gaze.h
-    ./fove/display.h
-    ./main.h
-    #./utils/utils.h
+    ./gaze.h
 )
 
 # Mainという実行ファイルを生成

@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib.backends.backend_pdf import PdfPages
 matplotlib.use('Agg')
-gaze_data_path = "/share/home/hara/workspace/fove/data/gaze/old_data/20211015/02/gaze.txt"
+preprocess_gaze_data_path = "/share/home/hara/Data/fove/gaze/old_data/20211015/01/gaze.txt"
+non_preprocess_data_path = "/share/home/hara/workspace/fove/src/build/gaze.txt"
+
+range_400_data_path = "/share/home/hara/Data/fove/gaze/gaze.txt"
 
 def read_gaze_data(data_path):
     with open(data_path) as f:
@@ -9,8 +13,23 @@ def read_gaze_data(data_path):
     
     data = []
     for line in lines:
-        lx ,ly, rx, ry, t = map(float, line[:-1].split())
+        lx ,ly, rx, ry, t= map(float, line[:-1].split())
         data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":t})
+        #lx ,ly, rx, ry, t, l_num, r_num= map(float, line[:-1].split())
+        #data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":t, "l_num":l_num, "r_num":r_num})
+    time_list = [gaze["t"] for gaze in data]
+    return data, time_list
+
+def read_non_preprocess_gaze_data(non_preprocess_data_path, time_list):
+    with open(non_preprocess_data_path) as f:
+        lines = f.readlines()
+    
+    data = []
+    for i,line in enumerate(lines):
+        lx, ly, rx, ry, index = map(float, line[:-1].split())
+        if lx!= -1 and ly and -1 and rx!= -1 and ry != -1:
+
+            data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":time_list[i]})
         #lx ,ly, rx, ry, t, l_num, r_num= map(float, line[:-1].split())
         #data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":t, "l_num":l_num, "r_num":r_num})
     return data
@@ -32,9 +51,12 @@ def make_xy_fig(data, side):
     ax.set_ylabel("y [px]")
     fig.subplots_adjust(right=0.95, top=0.95, wspace=0.15, hspace=0.15)
     if side == "l":
-        plt.savefig("left_xy.png")
+        pdf = PdfPages("left_xy.pdf")
+        pdf.savefig()
     else:
-        plt.savefig("right_xy.png")
+        pdf = PdfPages("right_xy.pdf")
+        pdf.savefig()
+    pdf.close()
 
 
 def xt_yt_fig(data, pos):
@@ -46,20 +68,29 @@ def xt_yt_fig(data, pos):
     ry_list = [gaze["ry"] for gaze in data]
     t_list = [gaze["t"] for gaze in data]
     if pos == "x":
-        ax.plot(t_list, lx_list, color="red", label="left eye")
-        ax.plot(t_list, rx_list, color="blue", label="right eye")
+        ax.scatter(t_list, lx_list, s=2,color="red", label="left eye")
+        ax.scatter(t_list, rx_list, s=2,color="blue", label="right eye")
     else:
-        ax.plot(t_list, ly_list, color="red", label="left eye")
-        ax.plot(t_list, ry_list, color="blue", label="right eye")
+        ax.scatter(t_list, ly_list, s=2,color="red", label="left eye")
+        ax.scatter(t_list, ry_list, s=2,color="blue", label="right eye")
 
     ax.legend(loc=0)
     ax.set_xlabel("t [s]")
-    ax.set_ylabel("x [px]")
+    ax.set_ylim(50, 250)
+    if pos == "x":
+        ax.set_ylabel("x [px]")
+    else:
+        ax.set_ylabel("y [px]")
     fig.subplots_adjust(right=0.95, top=0.95, wspace=0.15, hspace=0.15)
     if pos == "x":
-        plt.savefig("xt.png")
+        pdf = PdfPages("output/xt.pdf")
+        pdf.savefig()
+        plt.savefig("output/xt.png")
     else:
-        plt.savefig("yt.png")
+        pdf = PdfPages("output/yt.pdf")
+        pdf.savefig()
+        plt.savefig("output/yt.png")
+    pdf.close()
 
 
 def make_num_xy_fig(data, side):
@@ -127,8 +158,14 @@ def make_num_xy_fig(data, side):
 
 
 if __name__ == "__main__":
-    data = read_gaze_data(gaze_data_path)
+    #data, time_list = read_gaze_data(preprocess_gaze_data_path)
+    data, time_list = read_gaze_data(range_400_data_path)
+    #non_preprocess_data = read_non_preprocess_gaze_data(non_preprocess_data_path, time_list)
     make_xy_fig(data, "l")
     make_xy_fig(data, "r")
     xt_yt_fig(data, "x")
     xt_yt_fig(data, "y")
+    #make_xy_fig(non_preprocess_data, "l")
+    #make_xy_fig(non_preprocess_data, "r")
+    #xt_yt_fig(non_preprocess_data, "x")
+    #xt_yt_fig(non_preprocess_data, "y")

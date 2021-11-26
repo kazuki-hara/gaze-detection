@@ -2,7 +2,7 @@ import cv2
 
 THRESHOLD = 50
 
-image1_path = "./gaze/old_data/20211015/04/image/frame/0.png"
+image1_path = "/share/home/hara/Data/fove/gaze/old_data/20211015/04/image/frame/0.png"
 
 
 input_image = cv2.imread(image1_path)
@@ -22,16 +22,11 @@ def preprocess(image):
     return res
 
 
+def combine_image(left_image, right_image):
+    dist = cv2.hconcat([left_image, right_image])
+    cv2.imwrite("combine.png", dist)
+
 if __name__ == "__main__":
-    cv2.imwrite("left.png", left_eye)
-    left_eye_images = preprocess(left_eye)
-    cv2.imwrite("left_binary.png", left_eye_images[0])
-    cv2.imwrite("left_blur1.png", left_eye_images[1])
-    cv2.imwrite("left_blur2.png", left_eye_images[2])
-
-
-    cv2.imwrite("right.png", right_eye)
-    right_eye_images = preprocess(right_eye)
-    cv2.imwrite("right_binary.png", right_eye_images[0])
-    cv2.imwrite("right_blur1.png", right_eye_images[1])
-    cv2.imwrite("right_blur2.png", right_eye_images[2])
+    left_image = cv2.imread("/share/home/hara/workspace/fove/src/build/left.png")
+    right_image = cv2.imread("/share/home/hara/workspace/fove/src/build/right.png")
+    combine_image(left_image, right_image)

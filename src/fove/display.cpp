@@ -105,9 +105,7 @@ void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0�
     //show_image(input_image);
     //show_polygon();
     passed = get_passed_time();
-    if(passed <= 30.0){
-        calibration();
-    }
+    calibration();
 }
 
 void Display::show_image(cv::Mat image){
@@ -133,34 +131,34 @@ void Display::calibration(void){
         y = 0.0;
         show_polygon();
     }else if(8.0 < passed && passed <= 10.0){
-        y = (passed-8.0)*100; // 0->200
+        y = (passed-8.0)*200; // 0->200
         show_polygon();
     }else if(10.0 < passed && passed <= 15.0){
         x = 0.0;
-        y = 200.0;
+        y = 400.0;
         show_polygon();
     }else if(15.0 < passed && passed <= 17.0){
-        x = (passed-15.0)*100; // 0->200
-        y = 200-(passed-15.0)*100; // 200->0
+        x = (passed-15.0)*200; // 0->200
+        y = 400-(passed-15.0)*200; // 200->0
         show_polygon();
     }else if(17.0 < passed && passed <= 22.0){
-        x = 200.0;
+        x = 400.0;
         y = 0.0;
         show_polygon();
     }else if(22.0 < passed && passed <= 24.0){
-        x = 200 - (passed-22.0)*100; // 200->0
-        y = 0 - (passed-22.0)*100; // 0->-200
+        x = 400 - (passed-22.0)*200; // 200->0
+        y = 0 - (passed-22.0)*200; // 0->-200
         show_polygon();
     }else if(24.0 < passed && passed <= 29.0){
         x = 0.0;
-        y = -200.0;
+        y = -400.0;
         show_polygon();
     }else if(29.0 < passed && passed <= 31.0){
-        x = 0 - (passed-29.0)*100; // 0->-200
-        y = -200 + (passed-29.0)*100; // -200->0
+        x = 0 - (passed-29.0)*200; // 0->-200
+        y = -400 + (passed-29.0)*200; // -200->0
         show_polygon();
-    }else{
-        x = -200.0;
+    }else if(31.0 < passed && passed <= 40.0){
+        x = -400.0;
         y = 0.0;
         show_polygon();
     }

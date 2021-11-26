@@ -29,3 +29,25 @@ public:
 
 private:
 };
+
+
+class EyeInfoGetterV2{
+public:
+    EyeInfoGetterV2();
+    ~EyeInfoGetterV2();
+
+    std::tuple<cv::Mat, cv::Mat> convert_image(cv::Mat);
+    void preprocess(cv::Mat&);
+    std::vector<cv::Vec3f> detect_pupil_circle(cv::Mat);
+    std::tuple<double, double> cal_center_of_gravity(cv::Mat, std::vector<cv::Vec3f>);
+    std::tuple<double, double, double, double> detect_pupil_center(cv::Mat);
+
+    cv::Mat draw_pupil_center(cv::Mat, std::tuple<double, double, double, double>);
+    void get_pupil_info(void);
+
+private:
+    double l_x, l_y, r_x, r_y;
+};
+
+void get_pupil_center(double, double, cv::Mat);
+void remove_blank_line(cv::Mat &);
