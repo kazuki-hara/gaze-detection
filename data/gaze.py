@@ -14,7 +14,8 @@ def read_gaze_data(data_path):
     data = []
     for line in lines:
         lx ,ly, rx, ry, t= map(float, line[:-1].split())
-        data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":t})
+        if lx!= -1 and ly and -1 and rx!= -1 and ry != -1:
+            data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":t})
         #lx ,ly, rx, ry, t, l_num, r_num= map(float, line[:-1].split())
         #data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry, "t":t, "l_num":l_num, "r_num":r_num})
     time_list = [gaze["t"] for gaze in data]
@@ -158,14 +159,8 @@ def make_num_xy_fig(data, side):
 
 
 if __name__ == "__main__":
-    #data, time_list = read_gaze_data(preprocess_gaze_data_path)
-    data, time_list = read_gaze_data(range_400_data_path)
-    #non_preprocess_data = read_non_preprocess_gaze_data(non_preprocess_data_path, time_list)
+    data, time_list = read_gaze_data("/share/home/hara/workspace/fove/src/build/gaze.txt")
     make_xy_fig(data, "l")
     make_xy_fig(data, "r")
     xt_yt_fig(data, "x")
     xt_yt_fig(data, "y")
-    #make_xy_fig(non_preprocess_data, "l")
-    #make_xy_fig(non_preprocess_data, "r")
-    #xt_yt_fig(non_preprocess_data, "x")
-    #xt_yt_fig(non_preprocess_data, "y")

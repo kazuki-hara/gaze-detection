@@ -3,7 +3,7 @@
 #include <tuple>
 #include <vector>
 
-#define BINARY_THRES 50
+#define BINARY_THRES 40
 
 #define FIRST_GAUSS_K_SIZE 11
 #define SECOND_GAUSS_K_SIZE 3
@@ -49,5 +49,5 @@ private:
     double l_x, l_y, r_x, r_y;
 };
 
-void get_pupil_center(double, double, cv::Mat);
+//void get_pupil_center(double, double, cv::Mat);
 void remove_blank_line(cv::Mat &);

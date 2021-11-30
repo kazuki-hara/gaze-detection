@@ -42,11 +42,13 @@ void EyeCamera::capture(void){
     if(!cap.isOpened()) return;
     while(cap.read(frame))//無限ループ
     {
+        /*
         std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
         cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(frame, pupil_pos);
         eye_info_getter.get_pupil_info();
+        */
 
-        cv::imshow("Fove Eyes", pupil_frame);//画像を表示．
+        cv::imshow("Fove Eyes", frame);//画像を表示．
 
         int key = cv::waitKey(1);
 
@@ -61,7 +63,7 @@ void EyeCamera::capture(void){
             save = true;
             //フレーム画像を保存する．
             std::stringstream ss_frame;
-            ss_frame << "/share/home/hara/Data/fove/image/frame/" << count << ".png";
+            ss_frame << "/share/home/hara/Data/fove/image/" << count << ".png";
             cv::imwrite(ss_frame.str(), frame);
             count++;
         }
