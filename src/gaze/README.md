@@ -115,6 +115,7 @@
     | 1. 二値化した片目画像 <br> 2. ハフ変換によって検出した円のvector | 瞳孔位置のx座標とy座標のタプル |
 
   - `std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center(cv::Mat original_image)`
+  
     Foveから得られた目の生画像から各目の瞳孔位置を検出する一連の流れをまとめた関数．基本的にこれを使えばOK.
     処理の主な流れとしては
     1. 目の生画像からグレースケール変換した左目画像・右目画像を取得 ([`convert_image(original_image)`](#convert_image))
@@ -132,6 +133,7 @@
     | Foveから得られる目の生画像 (分割前の両目の画像) | 瞳孔位置のx座標とy座標のタプル |
 
   - `cv::Mat EyeInfoGetterV2::draw_pupil_center(cv::Mat original_image, std::tuple<double, double, double, double> pupil_pos)`
+  
     Foveから得られた目の生画像に，検出した瞳孔位置を表示させる関数．うまく検出できているか，誤検出している場合はどこらへんを瞳孔と勘違いしているのか等を確認するために使用．
 
     | 入力 | 出力 |
