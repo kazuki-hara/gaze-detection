@@ -9,16 +9,16 @@ Foveと雲台を動かすためのプログラム
 `socket.cpp`で雲台を動かす．
 `capture.cpp`でステレオカメラから画像を取得．
 
-#### [fove](./fove)
+### [fove](./fove)
 
 `display.cpp`でFove内のディスプレイに画像を表示．
 `camera.cpp`でFove内のカメラから目の画像を取得．
 
-#### [gaze](./gaze)
+### [gaze](./gaze)
 
 `gaze.cpp`で目の画像から瞳孔位置検出．
 
-#### [utils](./utils)
+### [utils](./utils)
 
 Foveと雲台に直接関係ないソースコードを置く．
 ディレクトリ内のファイル検索など
