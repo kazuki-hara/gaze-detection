@@ -8,9 +8,9 @@ set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs")
 # ここに.cppファイル
 set(SOURCES
     main.cpp
-    ./fove/camera.cpp
+    ./fove/camera/camera.cpp
     ./gaze/gaze.cpp
-    ./fove/display.cpp
+    ./fove/display/display.cpp
     #./gaze/gaze_main.cpp
     #./utils/utils.cpp
     #./utils/utils_main.cpp
@@ -18,9 +18,9 @@ set(SOURCES
 
 # ここに.hファイル
 set(HEADERS
-    ./fove/camera.h
+    ./fove/camera/camera.h
     ./gaze/gaze.h
-    ./fove/display.h
+    ./fove/display/display.h
     ./main.h
     #./utils/utils.h
 )

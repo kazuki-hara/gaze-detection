@@ -6,8 +6,8 @@
 #include <sstream>
 #include <tuple>
 #include "camera.h"
-#include "./../gaze/gaze.h"
-#include "./../main.h"
+#include "./../../gaze/gaze.h"
+#include "./../../main.h"
 
 cv::Mat frame;
 cv::Mat l_frame;
