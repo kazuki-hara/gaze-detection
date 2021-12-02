@@ -7,11 +7,11 @@
 #include "gaze.h"
 
 
-EyeInfoGetter::EyeInfoGetter(void){}
-EyeInfoGetter::~EyeInfoGetter(void){}
+EyeInfoGetterV1::EyeInfoGetterV1(void){}
+EyeInfoGetterV1::~EyeInfoGetterV1(void){}
 
 // 両目の画像をグレースケール化->左目と右目に分割
-std::tuple<cv::Mat, cv::Mat> EyeInfoGetter::convert_image(cv::Mat original_image){
+std::tuple<cv::Mat, cv::Mat> EyeInfoGetterV1::convert_image(cv::Mat original_image){
     cv::Mat gray_image;
     remove_blank_line(original_image);
     cv::cvtColor(original_image, gray_image, CV_BGR2GRAY);
@@ -23,7 +23,7 @@ std::tuple<cv::Mat, cv::Mat> EyeInfoGetter::convert_image(cv::Mat original_image
 }
 
 // 二値化->平滑化->エッジ検出->平滑化
-void EyeInfoGetter::preprocess(cv::Mat& eye_image){
+void EyeInfoGetterV1::preprocess(cv::Mat& eye_image){
     cv::threshold(eye_image, eye_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     cv::GaussianBlur(eye_image, eye_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
     cv::Canny(eye_image, eye_image, CANNY_THRES/2, CANNY_THRES);
@@ -31,7 +31,7 @@ void EyeInfoGetter::preprocess(cv::Mat& eye_image){
 }
 
 // 画像から円を検出
-std::vector<cv::Vec3f> EyeInfoGetter::make_hough_circle(cv::Mat eye_image){
+std::vector<cv::Vec3f> EyeInfoGetterV1::make_hough_circle(cv::Mat eye_image){
     std::vector<cv::Vec3f> circles;
     cv::HoughCircles(eye_image, circles, CV_HOUGH_GRADIENT, 1, 
             HOUGH_MIN_CENTER_DIST, CANNY_THRES,
@@ -40,7 +40,7 @@ std::vector<cv::Vec3f> EyeInfoGetter::make_hough_circle(cv::Mat eye_image){
 }
 
 // 検出した円を目の画像上に描写
-cv::Mat EyeInfoGetter::draw_circles(cv::Mat eye_image, std::vector<cv::Vec3f> circles){
+cv::Mat EyeInfoGetterV1::draw_circles(cv::Mat eye_image, std::vector<cv::Vec3f> circles){
     cv::Mat color_image;
     cv::cvtColor(eye_image, color_image, CV_GRAY2RGB);
     for(unsigned int i= 0; i<circles.size(); i++){

@@ -8,10 +8,10 @@
 
 int name = 0;
 
-void remove_blank_line(cv::Mat & image){
+void remove_blank_line(cv::Mat & original_image){
     for(int x=0; x<10; x++){
         for(int y=0; y<240; y++){
-            image.at<cv::Vec3b>(y, x+315) = image.at<cv::Vec3b>(y, x);
+            original_image.at<cv::Vec3b>(y, x+315) = original_image.at<cv::Vec3b>(y, x);
         }
     }
 }
@@ -89,16 +89,13 @@ cv::Mat draw_hough_circles(cv::Mat original_image, std::vector<cv::Vec3f> left_c
 }
 
 
-
-
-
 EyeInfoGetterV2::EyeInfoGetterV2(void){}
 EyeInfoGetterV2::~EyeInfoGetterV2(void){}
 
 // 両目の画像をグレースケール化->左目と右目に分割
 std::tuple<cv::Mat, cv::Mat> EyeInfoGetterV2::convert_image(cv::Mat original_image){
-    cv::Mat gray_image;
     remove_blank_line(original_image);
+    cv::Mat gray_image;
     cv::cvtColor(original_image, gray_image, CV_BGR2GRAY);
     cv::Mat left_eye_image;
     cv::Mat right_eye_image;
@@ -130,6 +127,8 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
     double hough_circle_center_x, hough_circle_center_y;
     double center_x = -1;
     double center_y = -1;
+
+    remove_outside_area(binarized_image);
 
     if(circles.size() >= 1){
         for(int i = 0; i<circles.size(); i++){
