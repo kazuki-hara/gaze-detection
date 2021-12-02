@@ -3,8 +3,8 @@
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include "display.h"
-#include "./../main.h"
-#include "camera.h"
+#include "./../../main.h"
+#include "./../camera/camera.h"
 
 bool disp_on_Fove = true;
 static double ex[2] = {-3.0, 3.0}, ey = 0.0, ez = 0.0, cx[2] = {-3.0, 3.0}, cy = 0.0, cz = 0.0;

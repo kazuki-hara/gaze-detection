@@ -11,10 +11,11 @@
 #include <time.h>
 #include <chrono>
 #include <tuple>
-#include "./fove/camera.h"
+#include "./fove/camera/camera.h"
 #include "./gaze/gaze.h"
-#include "./fove/display.h"
+#include "./fove/display/display.h"
 #include "main.h"
+#include "./utils/utils.h"
 
 
 std::chrono::system_clock::time_point  start, now;
@@ -33,7 +34,7 @@ FILE* test;
 
 // foveのカメラから目の画像を取得して色々画像処理するスレッド (OpenCV)
 void fove_camera(void){
-    EyeCamera eye_camera(640, 280, "Fove Eyes: Fove Eyes");
+    EyeCamera eye_camera;
     eye_camera.capture();
 }
 

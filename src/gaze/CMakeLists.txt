@@ -9,11 +9,13 @@ set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs")
 set(SOURCES
     ./gaze.cpp
     ./gaze_main.cpp
+    ./../utils/utils.cpp
 )
 
 # ここに.hファイル
 set(HEADERS
     ./gaze.h
+    ./../utils/utils.h
 )
 
 # Mainという実行ファイルを生成

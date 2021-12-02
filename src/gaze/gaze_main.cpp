@@ -4,21 +4,20 @@
 #include <iostream>
 #include <tuple>
 #include "gaze.h"
-
-#define image_dir "/share/home/hara/Data/fove/image/"
+#include "./../utils/utils.h"
 
 double x = 100.0;
 double y = 100.0;
 
 
 int main(void){
-    std::string imgae_dir = "/share/home/hara/Data/fove/gaze/old_data/20211015/01/image/frame/";
     FILE* gaze_output;
     gaze_output = fopen("gaze.txt", "w");
     EyeInfoGetterV2 eye_info_getter;
 
-    double lx, ly, rx, ry;
-    for(int i = 0; i<=2000; i++){
+    const char* image_dir = "/share/home/hara/Data/fove/sample/image/";
+    int image_num = count_files_num(image_dir);
+    for(int i = 0; i<image_num; i++){
         cv::Mat input_image = cv::imread("/share/home/hara/Data/fove/sample/image/" + std::to_string(i) + ".png");
         
 
