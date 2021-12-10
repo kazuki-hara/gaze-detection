@@ -1,27 +1,19 @@
 cmake_minimum_required(VERSION 3.21)
-project(MyOpenCVProject)
+project(FoveCameraControl)
 
 # Create Main project
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs -lstdc++fs")
+set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs --libs libv4l2")
 
 # ここに.cppファイル
 set(SOURCES
-    main.cpp
-    ./camera/camera.cpp
-    ./gaze/gaze.cpp
-    ./fove/display/display.cpp
-    #./gaze/gaze_main.cpp
-    ./utils/utils.cpp
+    ./utils.cpp
+    ./utils_main.cpp
 )
 
 # ここに.hファイル
 set(HEADERS
-    ./camera/camera.h
-    ./gaze/gaze.h
-    ./fove/display/display.h
-    ./main.h
-    ./utils/utils.h
+    ./utils.h
 )
 
 # Mainという実行ファイルを生成
@@ -39,4 +31,5 @@ target_link_libraries(main Threads::Threads)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 include_directories( ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
+
 target_link_libraries(main ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} )

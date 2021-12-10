@@ -51,7 +51,7 @@ cv::Mat remove_outside_area_v2(cv::Mat binarized_image){
     cv::findContours(binarized_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
     std::vector<std::vector<cv::Point>> contours_subset;
 
-    for(int i =0; i< contours.size(); i++){
+    for(unsigned int i =0; i< contours.size(); i++){
         double area = cv::contourArea(contours.at(i));
         if(100 < area && area < 1000) contours_subset.push_back(contours.at(i));
     }
@@ -66,7 +66,7 @@ cv::Mat draw_hough_circles(cv::Mat original_image, std::vector<cv::Vec3f> left_c
     double x, y, radius;
  
     if(left_circles.size() >= 1){
-        for(int i = 0; i<left_circles.size(); i++){
+        for(unsigned int i = 0; i<left_circles.size(); i++){
             x = left_circles[i][0];
             y = left_circles[i][1];
             radius = left_circles[i][2];
@@ -74,7 +74,7 @@ cv::Mat draw_hough_circles(cv::Mat original_image, std::vector<cv::Vec3f> left_c
         }
     }
     if(right_circles.size() >= 1){
-        for(int i = 0; i<right_circles.size(); i++){
+        for(unsigned int i = 0; i < right_circles.size(); i++){
             double x = right_circles[i][0];
             double y = right_circles[i][1];
             double radius = right_circles[i][2];
@@ -131,7 +131,7 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
     remove_outside_area(binarized_image);
 
     if(circles.size() >= 1){
-        for(int i = 0; i<circles.size(); i++){
+        for(unsigned int i = 0; i<circles.size(); i++){
             hough_circle_center_x = (int)circles[i][0];
             hough_circle_center_y = (int)circles[i][1];
 
@@ -153,15 +153,15 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
                 cv::findContours(binarized_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
                 cv::Moments mu;
                 cv::Point2f mc;
-                for(int j =0; j< contours.size(); j++){
-                    for(int k=0; k < contours[j].size(); k++){
+                for(unsigned int j =0; j < contours.size(); j++){
+                    for(unsigned int k=0; k < contours[j].size(); k++){
                         if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
                             area = cv::contourArea(contours.at(j));
                             int x_min = 320;
                             int x_max = 0;
                             int y_min = 240;
                             int y_max = 0;
-                            for(int l=0; l < contours[j].size(); l++){
+                            for(unsigned int l=0; l < contours[j].size(); l++){
                                 int x = contours[j][l].x;
                                 int y = contours[j][l].y;
                                 x_min = std::min(x, x_min);

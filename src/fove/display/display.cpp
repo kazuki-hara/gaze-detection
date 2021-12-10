@@ -37,7 +37,7 @@ void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble h
     glDisable(GL_TEXTURE_2D);
 }
 
-Display::Display(int h, int w, int argc, char* argv[]):
+Display::Display(int h, int w):
     height(h),
     width(w)
     {
@@ -45,18 +45,23 @@ Display::Display(int h, int w, int argc, char* argv[]):
         //resize(image, image, cv::Size(), DISP_WIDTH/image.cols, DISP_HEIGHT/image.rows);
         //cv::cvtColor(image, input_image, cv::COLOR_BGR2RGB);
         
-        glutInit(&argc, argv);
-        glutInitDisplayMode(GLUT_RGBA);
-        glutInitWindowPosition(0, 0);
         
-        glutCreateWindow("fove display");
-        glutFullScreen();
-        glClearColor(0.5, 0.5, 0.5, 0.0); // init
-        glutDisplayFunc(my_display_func);
-        glutMainLoop();
     }
 
 Display::~Display(void){}
+
+void Display::show_graphic(int argc, char* argv[]){
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGBA);
+    glutInitWindowPosition(0, 0);
+    
+    glutCreateWindow("fove display");
+    glutFullScreen();
+    glClearColor(0.5, 0.5, 0.5, 0.0); // init
+    glutDisplayFunc(my_display_func);
+    glutMainLoop();
+}
+
 
 void Display::my_display_func(void){
     glClear(GL_COLOR_BUFFER_BIT);
@@ -75,6 +80,7 @@ void Display::my_display_func(void){
     glutPostRedisplay();
     glutSwapBuffers();
 }
+
 
 void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1が右
     //----OpenGL上の目と頭の位置設定(3Dのときのみ)-----
@@ -125,8 +131,9 @@ void Display::show_polygon(void){
     glEnd();
 }
 
+
 void Display::calibration(void){
-    if(0.0 < passed && passed <= 8.0){
+    if(2.0 < passed && passed <= 8.0){
         x = 0.0;
         y = 0.0;
         show_polygon();
@@ -157,7 +164,7 @@ void Display::calibration(void){
         x = 0 - (passed-29.0)*200; // 0->-200
         y = -400 + (passed-29.0)*200; // -200->0
         show_polygon();
-    }else if(31.0 < passed && passed <= 40.0){
+    }else if(31.0 < passed && passed <= 36.0){
         x = -400.0;
         y = 0.0;
         show_polygon();

@@ -1,14 +1,14 @@
 #include <opencv2/opencv.hpp>
-#include <tuple>
 #include <string>
 
-class EyeCamera{
+class Camera{
     public:
-        EyeCamera(std::string);
-        ~EyeCamera(void);
+        Camera(std::string);
+        ~Camera(void);
 
         void save_image(void);
         void capture(void);
+        bool check_device_opened(void);
         cv::Mat get_frame(void);
 
         static double passed;
@@ -16,7 +16,6 @@ class EyeCamera{
     private:
         cv::Mat frame;
         int dev_id;
+        bool dev_open;
 
 };
-
-std::tuple<double, double, double, double> get_gaze_info(void);

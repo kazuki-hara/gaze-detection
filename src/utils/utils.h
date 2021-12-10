@@ -12,4 +12,4 @@ class FileOperator{
     private:
 };
 
-int count_files_num(const char*);
+int count_files_num(std::string);

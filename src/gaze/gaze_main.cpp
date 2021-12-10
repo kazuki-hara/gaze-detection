@@ -15,14 +15,15 @@ int main(void){
     gaze_output = fopen("gaze.txt", "w");
     EyeInfoGetterV2 eye_info_getter;
 
-    const char* image_dir = "/share/home/hara/Data/fove/sample/image/";
+    std::string image_dir = "/share/home/hara/Data/fove/calib/image/";
     int image_num = count_files_num(image_dir);
     for(int i = 0; i<image_num; i++){
-        cv::Mat input_image = cv::imread("/share/home/hara/Data/fove/sample/image/" + std::to_string(i) + ".png");
+        cv::Mat input_image = cv::imread(image_dir + std::to_string(i) + ".png");
         
 
         std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(input_image);
         cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(input_image, pupil_pos);
+        cv::resize(pupil_frame, pupil_frame, cv::Size(), 2, 2);
 
 
         double lx = std::get<0>(pupil_pos);

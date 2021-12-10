@@ -11,36 +11,44 @@
 #include <time.h>
 #include <chrono>
 #include <tuple>
-#include "./fove/camera/camera.h"
+#include "./camera/camera.h"
 #include "./gaze/gaze.h"
 #include "./fove/display/display.h"
 #include "main.h"
 #include "./utils/utils.h"
+#include <opencv2/opencv.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include <unistd.h>
 
+
+#define Fove "FOVE Eyes: FOVE Eyes"
+#define PayCam "PayCam: PayCam"
 
 std::chrono::system_clock::time_point  start, now;
 double msec;
 
 
 
-
-bool console_print = true;
-
+Camera stereo_camera(PayCam);
+Display display(DISP_HEIGHT, DISP_WIDTH);
 
 // データ出力先
 std::string output_dir = "./test/";
 FILE* test;
 
+// ステレオカメラの画像を取得するスレッド (OpenCV)
+void cammount_camera(void){
+    stereo_camera.capture();
+}
 
-// foveのカメラから目の画像を取得して色々画像処理するスレッド (OpenCV)
-void fove_camera(void){
-    EyeCamera eye_camera;
-    eye_camera.capture();
+// foveのカメラから目の画像を取得するスレッド (OpenCV)
+void fove_camera(Camera* eye_camera){
+    eye_camera->capture();
 }
 
 // foveのディスプレイに色々映すスレッド (OpenGL) 現状はキャリブレーション用の点のみ
 void fove_display(int argc, char* argv[]){
-    Display display(DISP_HEIGHT, DISP_WIDTH, argc, argv);
+    display.show_graphic(argc, argv);
 }
 
 // 時間管理用スレッド
@@ -58,18 +66,46 @@ double get_passed_time(void){
 }
 
 int main(int argc, char *argv[]){
+    Camera eye_camera(Fove);
     start = std::chrono::system_clock::now();
-    std::thread fove_camera_thread(fove_camera);
+    std::thread fove_camera_thread(fove_camera, &eye_camera);
+    std::thread cammount_camera_thread(cammount_camera);
     std::thread fove_display_thread(fove_display, argc, argv);
     std::thread time_thread(record_passed_time);
     
+    cammount_camera_thread.detach();
     fove_camera_thread.detach();
     fove_display_thread.detach();
     time_thread.detach();
     
+    EyeInfoGetterV2 eye_info_getter;
+
+    FILE* time_log;
+    time_log = fopen("/share/home/hara/Data/fove/tmp/time.txt", "w");
+    std::string image_dir = "/share/home/hara/Data/fove/tmp/image/";
+    int i = 0;
+
     while(true){
-        if(get_passed_time() > 40){
-            return 0;
+        if(eye_camera.check_device_opened()){
+            cv::Mat frame = eye_camera.get_frame();
+            fprintf(time_log, "%f\n", get_passed_time());
+            cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
+            std::cout << i << std::endl;
+            i++;
+
+
+            //std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
+            //cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(frame, pupil_pos);
+            //cv::imshow("Fove", pupil_frame);
+        }
+        /*if(stereo_camera.check_device_opened()){
+            cv::Mat s_frame = stereo_camera.get_frame();
+            cv::imshow("雲台", s_frame);
+        }*/
+        if(get_passed_time() > 50){
+            std::cout << "finish" << std::endl;
+            fclose(time_log);
+            break;
         }
     }
     return 0;
