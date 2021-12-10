@@ -38,7 +38,6 @@ Camera::Camera(std::string dev_name){
             dev_id = i;
             break;
         }
-        std::cout << std::string((const char *)l_v4l2cap.card) << std::endl;
     }
     if(m_fd == -1){
         std::cout << "Cannot open " << dev_name << std::endl;
