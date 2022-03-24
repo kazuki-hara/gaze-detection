@@ -13,7 +13,7 @@
 #include <tuple>
 #include "./camera/camera.h"
 #include "./gaze/gaze.h"
-#include "./fove/display/display.h"
+#include "./fove/display.h"
 #include "main.h"
 #include "./utils/utils.h"
 #include <opencv2/opencv.hpp>
@@ -29,17 +29,22 @@ double msec;
 
 
 
-Camera stereo_camera(PayCam);
+//Camera stereo_camera(PayCam);
 Display display(DISP_HEIGHT, DISP_WIDTH);
 
 // データ出力先
 std::string output_dir = "./test/";
 FILE* test;
 
-// ステレオカメラの画像を取得するスレッド (OpenCV)
-void cammount_camera(void){
-    stereo_camera.capture();
+// プログラム開始から何秒経過したか取得する関数 (#include "main.h"で他ファイルでも使用可能)
+double get_passed_time(void){
+    return msec;
 }
+
+// ステレオカメラの画像を取得するスレッド (OpenCV)
+//void cammount_camera(void){
+//    stereo_camera.capture();
+//}
 
 // foveのカメラから目の画像を取得するスレッド (OpenCV)
 void fove_camera(Camera* eye_camera){
@@ -60,20 +65,17 @@ void record_passed_time(void){
     }
 }
 
-// プログラム開始から何秒経過したか取得する関数 (#include "main.h"で他ファイルでも使用可能)
-double get_passed_time(void){
-    return msec;
-}
+
 
 int main(int argc, char *argv[]){
     Camera eye_camera(Fove);
     start = std::chrono::system_clock::now();
     std::thread fove_camera_thread(fove_camera, &eye_camera);
-    std::thread cammount_camera_thread(cammount_camera);
+    //std::thread cammount_camera_thread(cammount_camera);
     std::thread fove_display_thread(fove_display, argc, argv);
     std::thread time_thread(record_passed_time);
     
-    cammount_camera_thread.detach();
+    //cammount_camera_thread.detach();
     fove_camera_thread.detach();
     fove_display_thread.detach();
     time_thread.detach();
@@ -82,6 +84,8 @@ int main(int argc, char *argv[]){
 
     FILE* time_log;
     time_log = fopen("/share/home/hara/Data/fove/tmp/time.txt", "w");
+    FILE* gaze_log;
+    gaze_log = fopen("/share/home/hara/Data/fove/tmp/gaze.txt", "w");
     std::string image_dir = "/share/home/hara/Data/fove/tmp/image/";
     int i = 0;
 
@@ -90,11 +94,13 @@ int main(int argc, char *argv[]){
             cv::Mat frame = eye_camera.get_frame();
             fprintf(time_log, "%f\n", get_passed_time());
             cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
-            std::cout << i << std::endl;
-            i++;
+            std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
+            double lx = std::get<0>(pupil_pos);
+            double ly = std::get<1>(pupil_pos);
+            double rx = std::get<2>(pupil_pos);
+            double ry = std::get<3>(pupil_pos);
+            fprintf(gaze_log, "%f %f %f %f\n", lx, ly, rx, ry);
 
-
-            //std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
             //cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(frame, pupil_pos);
             //cv::imshow("Fove", pupil_frame);
         }
@@ -105,8 +111,10 @@ int main(int argc, char *argv[]){
         if(get_passed_time() > 50){
             std::cout << "finish" << std::endl;
             fclose(time_log);
+            fclose(gaze_log);
             break;
         }
+        i++;
     }
     return 0;
 }

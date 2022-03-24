@@ -11,8 +11,6 @@ class Camera{
         bool check_device_opened(void);
         cv::Mat get_frame(void);
 
-        static double passed;
-
     private:
         cv::Mat frame;
         int dev_id;

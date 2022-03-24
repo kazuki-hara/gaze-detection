@@ -10,7 +10,7 @@ set(SOURCES
     main.cpp
     ./camera/camera.cpp
     ./gaze/gaze.cpp
-    ./fove/display/display.cpp
+    ./fove/display.cpp
     #./gaze/gaze_main.cpp
     ./utils/utils.cpp
 )
@@ -19,7 +19,7 @@ set(SOURCES
 set(HEADERS
     ./camera/camera.h
     ./gaze/gaze.h
-    ./fove/display/display.h
+    ./fove/display.h
     ./main.h
     ./utils/utils.h
 )

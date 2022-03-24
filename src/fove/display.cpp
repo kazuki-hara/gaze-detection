@@ -3,7 +3,7 @@
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include "display.h"
-#include "./../../main.h"
+#include "./../main.h"
 #include "./../camera/camera.h"
 
 bool disp_on_Fove = true;
@@ -136,37 +136,42 @@ void Display::calibration(void){
     if(2.0 < passed && passed <= 8.0){
         x = 0.0;
         y = 0.0;
-        show_polygon();
     }else if(8.0 < passed && passed <= 10.0){
         y = (passed-8.0)*200; // 0->200
-        show_polygon();
     }else if(10.0 < passed && passed <= 15.0){
         x = 0.0;
         y = 400.0;
-        show_polygon();
     }else if(15.0 < passed && passed <= 17.0){
         x = (passed-15.0)*200; // 0->200
         y = 400-(passed-15.0)*200; // 200->0
-        show_polygon();
     }else if(17.0 < passed && passed <= 22.0){
         x = 400.0;
         y = 0.0;
-        show_polygon();
     }else if(22.0 < passed && passed <= 24.0){
         x = 400 - (passed-22.0)*200; // 200->0
         y = 0 - (passed-22.0)*200; // 0->-200
-        show_polygon();
     }else if(24.0 < passed && passed <= 29.0){
         x = 0.0;
         y = -400.0;
-        show_polygon();
     }else if(29.0 < passed && passed <= 31.0){
         x = 0 - (passed-29.0)*200; // 0->-200
         y = -400 + (passed-29.0)*200; // -200->0
-        show_polygon();
     }else if(31.0 < passed && passed <= 36.0){
         x = -400.0;
         y = 0.0;
-        show_polygon();
     }
+    else if(36.0 <= passed && passed <= 40.0){
+        x = -400.0 + (passed - 36.0) * 200;
+        y = 0.0;
+    }else if(40.0 <= passed && passed <= 42.0){
+        x = 400.0 - (passed - 40.0) * 200;
+        y = 0.0;
+    }else if(42.0 <= passed && passed <= 44.0){
+        x = 0.0;
+        y = (passed - 42.0) * 200;
+    }else if(44.0 <= passed && passed <= 48.0){
+        x = 0.0;
+        y = 400.0 - (passed - 44.0) * 200;
+    }
+    show_polygon();
 }

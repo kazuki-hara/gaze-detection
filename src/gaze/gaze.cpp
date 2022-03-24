@@ -246,7 +246,7 @@ cv::Mat EyeInfoGetterV2::draw_pupil_center(cv::Mat original_image, std::tuple<do
 };
 
 void EyeInfoGetterV2::get_pupil_info(void){
-    printf("%lf %lf %lf %lf\n" , l_x ,l_y, r_x, r_y);
+    printf("%lf %lf %lf %lf\n", l_x ,l_y, r_x, r_y);
 }
 
 

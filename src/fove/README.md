@@ -1,13 +1,17 @@
 # fove
 
-Fove内のディスプレイに表示、Foveから目の画像を取得するプログラム類
+Fove内のディスプレイにキャリブレーション用画面やステレオカメラの映像を表示するプログラム．
 
-## ディレクトリ構成
+## display.cpp
 
-### [camera](./camera)
+- `void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)`
+  
+    画像を貼り付けるテクスチャに関する関数．石川さんが作ったもの
 
-Fove内のカメラから目の画像を取得するためのソースコード
+    | 入力 | 出力 |
+    | --------- | ----------- |
+    | 1. テクスチャの中心位置のx座標 <br> 
+      2. | なし |
 
-### [display](./display)
+- `Display::Display(int h, int w)`
 
-Foveのディスプレイに映像を表示するためのソースコード

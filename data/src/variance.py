@@ -7,7 +7,7 @@ rad_per_pix = 60 / 78
 
 from statistics import stdev, variance, median
 
-threshold = [3, 8, 10, 15, 17, 22, 24, 29, 31, 35]
+threshold = [3, 8, 10, 15, 17, 22, 24, 29, 31, 36]
 
 def read_gaze_data(data_path):
     with open(data_path) as f:
@@ -27,6 +27,33 @@ def read_gaze_data(data_path):
                 index.append(i)
                 threshold.pop(0)
     return preprocess_data, index
+
+
+def read_gaze_data_time_data(gaze_data_path, time_data_path):
+    with open(gaze_data_path) as f:
+        gaze_data_lines = f.readlines()
+    with open(time_data_path) as tf:
+        time_data_lines = tf.readlines()
+
+    preprocess_data = []
+    index = []
+    i = 0
+    for gaze, time in zip(gaze_data_lines, time_data_lines):
+        gaze_list = list(map(float, gaze[:-1].split()))
+        lx = gaze_list[0]
+        ly = gaze_list[1]
+        rx = gaze_list[2]
+        ry = gaze_list[3]
+        t = float(time[:-1])
+        preprocess_data.append({"lx": lx, "ly": ly, "rx": rx, "ry": ry})
+        if len(threshold) != 0:
+            if gaze_list[4] >= threshold[0]:
+                index.append(i)
+                threshold.pop(0)
+        i+=1
+    return preprocess_data, index
+
+
 
 
 def main(datas, index):
@@ -74,7 +101,8 @@ def main(datas, index):
         #print(variance(lx_list), variance(ly_list), variance(rx_list), variance(ry_list))
 
 if __name__ == "__main__":
-    data, index = read_gaze_data(preprocess_data_path)
+    #data, index = read_gaze_data(preprocess_data_path)
+    data, index = read_gaze_data_time_data("/share/home/hara/workspace/fove/src/build/gaze.txt", "/share/home/hara/Data/fove/calib/time.txt")
     #main(data, 700, None)
     main(data, index)
     data, _ = read_gaze_data(non_preprocess_data_path)
