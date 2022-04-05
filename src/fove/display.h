@@ -19,6 +19,7 @@ public:
     void show_cammount_video(void);
     void display_calibration_scene(void);
     static void calibration(void);
+    static void calibration_v2(void);
     
     const int height;
     const int width; 

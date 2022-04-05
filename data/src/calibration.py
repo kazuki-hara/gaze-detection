@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 INF = 10e9
 
 data_dir = "/share/home/hara/Data/fove/tmp/"
@@ -12,7 +13,8 @@ class Calibration:
         self.time_list = []
 
         # 注視中のデータを抽出
-        self.gaze_begin_time = [3.0, 11.0, 18.0, 25.0, 32.0, INF]
+        #self.gaze_begin_time = [3.0, 11.0, 18.0, 25.0, 32.0, INF]
+        self.gaze_begin_time = [i*7.0 + 3.0 for i in range(25)] + [INF]
         self.gaze_continuation_time = 4.0
         self.extracted_gaze_data = []
 
@@ -28,13 +30,11 @@ class Calibration:
         for str_data in data_list:
             lx, ly, rx, ry = map(float, str_data[:-1].split())
             self.pupil_list.append([lx, ly, rx, ry])
-        
     
     def read_time_data(self, txt_path):
         f = open(txt_path, 'r')
         data_list = f.readlines()
         self.time_list = [float(data[:-1]) for data in data_list]
-
     
     def extract_gaze_data(self):
         gaze_index = 0  # center, top, right, bottom, left
@@ -69,6 +69,34 @@ class Calibration:
             self.pupil_pos.append(pupil_pos)
     
 
+    def calculation_distance_from_center(self):
+        fig = plt.figure()
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
+        lx = []
+        ly = []
+        rx = []
+        ry = []
+        center = self.pupil_pos[12]
+        for data in self.pupil_pos:
+            lx.append(data[0] - center[0])
+            ly.append(data[1] - center[1])
+            rx.append(data[2] - center[2])
+            ry.append(data[3] - center[3])
+        ax1.scatter(lx, ly)
+        ax2.scatter(rx, ry)
+        ax1.set_title("left eye")
+        ax1.set_xlabel("x [px]")
+        ax1.set_ylabel("y [px]")
+        ax2.set_title("right eye")
+        ax2.set_xlabel("x [px]")
+        ax2.set_ylabel("y [px]")
+        fig.tight_layout()
+        fig.savefig("test.pdf")
+        
+
+    
+
     def calculation_pupil_to_display(self):
         # x方向
         left_eye_x = [0]
@@ -87,4 +115,5 @@ if __name__ == "__main__":
     calib.read_time_data(time_txt_path)
     calib.extract_gaze_data()
     calib.remove_outliers()
+    calib.calculation_distance_from_center()
 

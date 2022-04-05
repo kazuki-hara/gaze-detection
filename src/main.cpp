@@ -87,13 +87,14 @@ int main(int argc, char *argv[]){
     FILE* gaze_log;
     gaze_log = fopen("/share/home/hara/Data/fove/tmp/gaze.txt", "w");
     std::string image_dir = "/share/home/hara/Data/fove/tmp/image/";
+
     int i = 0;
 
     while(true){
         if(eye_camera.check_device_opened()){
             cv::Mat frame = eye_camera.get_frame();
             fprintf(time_log, "%f\n", get_passed_time());
-            cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
+            //cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
             std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
             double lx = std::get<0>(pupil_pos);
             double ly = std::get<1>(pupil_pos);
@@ -108,7 +109,7 @@ int main(int argc, char *argv[]){
             cv::Mat s_frame = stereo_camera.get_frame();
             cv::imshow("雲台", s_frame);
         }*/
-        if(get_passed_time() > 50){
+        if(get_passed_time() > 175){
             std::cout << "finish" << std::endl;
             fclose(time_log);
             fclose(gaze_log);

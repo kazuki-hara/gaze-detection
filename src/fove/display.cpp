@@ -111,7 +111,7 @@ void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0�
     //show_image(input_image);
     //show_polygon();
     passed = get_passed_time();
-    calibration();
+    calibration_v2();
 }
 
 void Display::show_image(cv::Mat image){
@@ -173,5 +173,16 @@ void Display::calibration(void){
         x = 0.0;
         y = 400.0 - (passed - 44.0) * 200;
     }
+    show_polygon();
+}
+
+void Display::calibration_v2(void){
+    double range = 300.0;
+    int index;
+    index = ((int)passed) / 7;
+    int x_index = index % 5;
+    int y_index = (int)(index / 5);
+    x = -1* range + x_index * range / 2;
+    y = range - y_index * range / 2;
     show_polygon();
 }
