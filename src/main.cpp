@@ -26,6 +26,7 @@
 
 std::chrono::system_clock::time_point  start, now;
 double msec;
+bool exit_flag = false;
 
 
 

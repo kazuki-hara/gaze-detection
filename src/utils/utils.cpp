@@ -50,3 +50,7 @@ std::string get_data_string(void){
     s << std::setw(2) << std::setfill('0') << local_time->tm_mday;
     return s.str();
 }
+
+void get_year_month_day(void){
+    
+}
