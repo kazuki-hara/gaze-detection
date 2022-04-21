@@ -19,6 +19,7 @@
 #include <opencv2/opencv.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <unistd.h>
+#include "./calibration/calibration.h"
 
 
 #define Fove "FOVE Eyes: FOVE Eyes"
@@ -27,6 +28,8 @@
 std::chrono::system_clock::time_point  start, now;
 double msec;
 bool exit_flag = false;
+int mode;
+std::tuple<double, double, double, double> disp_gaze;
 
 
 
@@ -57,6 +60,7 @@ void fove_display(int argc, char* argv[]){
     display.show_graphic(argc, argv);
 }
 
+
 // 時間管理用スレッド
 void record_passed_time(void){
     while(true){
@@ -66,9 +70,20 @@ void record_passed_time(void){
     }
 }
 
+int check_mode(void){
+    return mode;
+}
 
+std::tuple<double, double, double, double>get_disp_gaze(void){
+    return disp_gaze;
+}
 
 int main(int argc, char *argv[]){
+    std::cout << argv[1] << std::endl;
+    if(argv[1] == "calibration") mode = 0;
+    else mode = 1;
+
+
     Camera eye_camera(Fove);
     start = std::chrono::system_clock::now();
     std::thread fove_camera_thread(fove_camera, &eye_camera);
@@ -84,9 +99,17 @@ int main(int argc, char *argv[]){
     EyeInfoGetterV2 eye_info_getter;
 
     FILE* time_log;
-    time_log = fopen("/share/home/hara/Data/fove/tmp/time.txt", "w");
+    FILE* pupil_log;
     FILE* gaze_log;
-    gaze_log = fopen("/share/home/hara/Data/fove/tmp/gaze.txt", "w");
+    if(mode == 0){
+        time_log = fopen("/share/home/hara/Data/fove/tmp/time0.txt", "w");
+        pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil0.txt", "w");
+    }else{
+        time_log = fopen("/share/home/hara/Data/fove/tmp/time1.txt", "w");
+        pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil1.txt", "w");
+        gaze_log = fopen("/share/home/hara/Data/fove/tmp/gaze1.txt", "w");
+    }
+    
     std::string image_dir = "/share/home/hara/Data/fove/tmp/image/";
 
     int i = 0;
@@ -101,21 +124,28 @@ int main(int argc, char *argv[]){
             double ly = std::get<1>(pupil_pos);
             double rx = std::get<2>(pupil_pos);
             double ry = std::get<3>(pupil_pos);
-            fprintf(gaze_log, "%f %f %f %f\n", lx, ly, rx, ry);
+            fprintf(pupil_log, "%f %f %f %f\n", lx, ly, rx, ry);
+
+            if(mode == 1){
+                disp_gaze = calib.calcuration_gaze_point(lx, ly, rx, ry);
+            }
 
             //cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(frame, pupil_pos);
             //cv::imshow("Fove", pupil_frame);
         }
-        /*if(stereo_camera.check_device_opened()){
-            cv::Mat s_frame = stereo_camera.get_frame();
-            cv::imshow("雲台", s_frame);
-        }*/
-        if(get_passed_time() > 175){
-            std::cout << "finish" << std::endl;
-            fclose(time_log);
-            fclose(gaze_log);
-            break;
+        //if(stereo_camera.check_device_opened()){
+        //    cv::Mat s_frame = stereo_camera.get_frame();
+        //    cv::imshow("雲台", s_frame);
+        //}
+        if(mode == 0){
+            if(get_passed_time() > 175){
+                std::cout << "finish" << std::endl;
+                fclose(time_log);
+                fclose(gaze_log);
+                break;
+            }
         }
+        
         i++;
     }
     return 0;

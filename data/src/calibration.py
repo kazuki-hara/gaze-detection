@@ -1,13 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import pandas as pd
+
 INF = 10e9
 
 data_dir = "/share/home/hara/Data/fove/tmp/"
-pupil_pos_txt_path = data_dir + "gaze.txt"
-time_txt_path = data_dir + "time.txt"
+data_dir = "/share/home/hara/Data/fove/gaze/old_data/20220419/02/"
+pupil_pos_txt_path = data_dir + "pupil0.txt"
+time_txt_path = data_dir + "time0.txt"
 
-create_fig = False
+create_figure =  False
 
 class Calibration:
     def __init__(self):
@@ -27,7 +30,6 @@ class Calibration:
         self.pupil_pos = [] # 中心，上，右，下，左の[lx, ly, rx, ry]
 
 
-
     def read_pupil_data(self, txt_path):
         f = open(txt_path, 'r')
         data_list = f.readlines()
@@ -35,11 +37,13 @@ class Calibration:
             lx, ly, rx, ry = map(float, str_data[:-1].split())
             self.pupil_list.append([lx, ly, rx, ry])
     
+
     def read_time_data(self, txt_path):
         f = open(txt_path, 'r')
         data_list = f.readlines()
         self.time_list = [float(data[:-1]) for data in data_list]
-    
+
+
     def extract_gaze_data(self):
         gaze_index = 0  # center, top, right, bottom, left
         gaze_data = []
@@ -86,7 +90,7 @@ class Calibration:
             rx.append(data[2] - center[2])
             ry.append(data[3] - center[3])
         
-        if create_fig:
+        if create_figure:
             fig = plt.figure()
             ax1 = fig.add_subplot(1, 2, 1)
             ax2 = fig.add_subplot(1, 2, 2)
@@ -105,22 +109,96 @@ class Calibration:
 
     
     def calib_test(self, param, lx, ly, rx, ry, disp_x, disp_y):
-        exp = np.array([(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
-        pxx, pxy, pyy, px, py, p0 = param
-        z = pxx * exp[0] + pxy * exp[1] + pyy * exp[2] + px * exp[3] + py * exp[4] + p0 * exp[5]
+        # データ変形
         LX = np.reshape(lx, (5, 5))
         LY = np.reshape(ly, (5, 5))
-        z = np.reshape(z, (5, 5))
-        Z = np.reshape(np.array([-300, -150, 0, 150, 300]*5), (5, 5))
-        print(LX)
+        RX = np.reshape(rx, (5, 5))
+        RY = np.reshape(ry, (5, 5))
+
+        # 近似式 xx + xy + yy + x + y + 1
+        #l_exp = np.array([(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
+        #r_exp = np.array([(lambda x: x*x)(rx), (lambda x, y: x*y)(rx, ry), (lambda y: y*y)(ry), rx, ry, np.ones(self.calib_point_num)])
+        l_exp = np.array([(lambda x: x*x*x)(lx), (lambda x, y: x*x*y)(lx, ly), (lambda x, y: x*y*y)(lx, ly), (lambda y: y*y*y)(ly),(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
+        r_exp = np.array([(lambda x: x*x*x)(rx), (lambda x, y: x*x*y)(rx, ry), (lambda x, y: x*y*y)(rx, ry), (lambda y: y*y*y)(ry),(lambda x: x*x)(rx), (lambda x, y: x*y)(rx, ry), (lambda y: y*y)(ry), rx, ry, np.ones(self.calib_point_num)])
+
+
+        # 注視点を計算
+        lx_disp = sum([param["lx"][i] * l_exp[i] for i in range(len(param["lx"]))])
+        ly_disp = sum([param["ly"][i] * l_exp[i] for i in range(len(param["ly"]))])
+        rx_disp = sum([param["rx"][i] * r_exp[i] for i in range(len(param["rx"]))])
+        ry_disp = sum([param["ry"][i] * r_exp[i] for i in range(len(param["ry"]))])
+
+        # データ変形
+        lx_disp = np.reshape(lx_disp, (5, 5))
+        ly_disp = np.reshape(ly_disp, (5, 5))
+        rx_disp = np.reshape(rx_disp, (5, 5))
+        ry_disp = np.reshape(ry_disp, (5, 5))
+        x_disp = np.reshape(np.array([-300, -150, 0, 150, 300]*5), (5, 5)) # 表示した注視点のx座標(理論値)
+        y_disp = np.reshape(np.array([300]*5 + [150]*5 + [0]*5 + [-150]*5 + [-300]*5), (5, 5)) # 表示した注視点のy座標(理論値)
+
+        # グラフ作成
         fig=plt.figure()
-        ax11=fig.add_subplot(111,projection='3d')
+        fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
         x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
-        print(x)
-        ax11.plot_wireframe(LX, LY, Z)
-        ax11.scatter(LX, LY, z, color = "red")
-        print(z)
-        plt.show("calib_test.pdf")
+        # lx
+        ax11=fig.add_subplot(111,projection='3d')
+        ax11.view_init(elev=10)
+        ax11.plot_wireframe(LX, LY, x_disp)
+        ax11.scatter(LX, LY, lx_disp, color = "red")
+        ax11.set_xlabel("$x_{pupil} [px]$")
+        ax11.set_ylabel("$y_{pupil} [px]$")
+        ax11.set_zlabel("$x_{disp} [px]$")
+        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        fig.tight_layout()
+        plt.savefig("lx.pdf")
+
+        #fig=plt.figure()
+        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        # lx
+        ax11=fig.add_subplot(111,projection='3d')
+        ax11.view_init(elev=10)
+        ax11.plot_wireframe(LX, LY, y_disp)
+        ax11.scatter(LX, LY, ly_disp, color = "red")
+        ax11.set_xlabel("$x_{pupil} [px]$")
+        ax11.set_ylabel("$y_{pupil} [px]$")
+        ax11.set_zlabel("$y_{disp} [px]$")
+        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        fig.tight_layout()
+        plt.savefig("ly.pdf")
+
+        fig=plt.figure()
+        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        # lx
+        ax11=fig.add_subplot(111,projection='3d')
+        ax11.view_init(elev=10)
+        ax11.plot_wireframe(RX, RY, x_disp)
+        ax11.scatter(RX, RY, rx_disp, color = "red")
+        ax11.set_xlabel("$x_{pupil} [px]$")
+        ax11.set_ylabel("$y_{pupil} [px]$")
+        ax11.set_zlabel("$x_{disp} [px]$")
+        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        fig.tight_layout()
+        plt.savefig("rx.pdf")
+
+        fig=plt.figure()
+        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        # lx
+        ax11=fig.add_subplot(111,projection='3d')
+        ax11.view_init(elev=10)
+        ax11.plot_wireframe(RX, RY, y_disp)
+        ax11.scatter(RX, RY, ry_disp, color = "red")
+        ax11.set_xlabel("$x_{pupil} [px]$")
+        ax11.set_ylabel("$y_{pupil} [px]$")
+        ax11.set_zlabel("$y_{disp} [px]$")
+        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        fig.tight_layout()
+        plt.savefig("ry.pdf")
+
+        print(pd.DataFrame(pd.Series((lx_disp - x_disp).ravel()).describe()))
+        print(pd.DataFrame(pd.Series((ly_disp - y_disp).ravel()).describe()))
+        print(pd.DataFrame(pd.Series((rx_disp - x_disp).ravel()).describe()))
+        print(pd.DataFrame(pd.Series((ry_disp - y_disp).ravel()).describe()))
+        
         
 
         
@@ -136,18 +214,29 @@ class Calibration:
         ry = np.array(ry)
         disp_x = np.array([-300, -150, 0, 150, 300]*5)
         disp_y = np.array([300] * 5 + [150]*5+[0]*5+[-150]*5+[-300]*5)
+
         # 近似式 xx + xy + yy + x + y + 1
-        l_exp = np.array([(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
-        
+        #l_exp = np.array([(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
+        #r_exp = np.array([(lambda x: x*x)(rx), (lambda x, y: x*y)(rx, ry), (lambda y: y*y)(ry), rx, ry, np.ones(self.calib_point_num)])
+        l_exp = np.array([(lambda x: x*x*x)(lx), (lambda x, y: x*x*y)(lx, ly), (lambda x, y: x*y*y)(lx, ly), (lambda y: y*y*y)(ly),(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
+        r_exp = np.array([(lambda x: x*x*x)(rx), (lambda x, y: x*x*y)(rx, ry), (lambda x, y: x*y*y)(rx, ry), (lambda y: y*y*y)(ry),(lambda x: x*x)(rx), (lambda x, y: x*y)(rx, ry), (lambda y: y*y)(ry), rx, ry, np.ones(self.calib_point_num)])
 
-        param = np.linalg.lstsq(l_exp.T, disp_x)[0]
-        pxx, pxy, pyy, px, py, p0 = param
-        self.calib_test(param, lx, ly, rx, ry, disp_x, disp_y)
+        # 近似パラメータ
+        lx_param = np.linalg.lstsq(l_exp.T, disp_x, rcond=None)[0]
+        ly_param = np.linalg.lstsq(l_exp.T, disp_y, rcond=None)[0]
+        rx_param = np.linalg.lstsq(r_exp.T, disp_x, rcond=None)[0]
+        ry_param = np.linalg.lstsq(r_exp.T, disp_y, rcond=None)[0]
+        param = {"lx": lx_param, "ly": ly_param, "rx": rx_param, "ry": ry_param}
+        print(param)
+        with open("/share/home/hara/workspace/fove/config/calibration/parameter.txt", "w") as f:
+            for parameter in param.values():
+                f.writelines(",".join(map(str, parameter))+"\n")
+                f.writelines(",".join(map(str,self.pupil_pos[12]))+"\n")
+        # 近似できているか確認
+        if create_figure:
+            self.calib_test(param, lx, ly, rx, ry, disp_x, disp_y)
 
-
-
-
-        return pxx, pxy, pyy, px, py, p0
+        return param
         
 
 

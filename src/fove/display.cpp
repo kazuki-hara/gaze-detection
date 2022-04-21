@@ -5,6 +5,7 @@
 #include "display.h"
 #include "./../main.h"
 #include "./../camera/camera.h"
+#include "./../calibration/calibration.h"
 
 bool disp_on_Fove = true;
 static double ex[2] = {-3.0, 3.0}, ey = 0.0, ez = 0.0, cx[2] = {-3.0, 3.0}, cy = 0.0, cz = 0.0;
@@ -18,8 +19,15 @@ double dx = EYE_DISP_X * 4.05 / 3.21, dy = EYE_DISP_Y * 4.05 / 3.21;
 double x=0;
 double y=0;
 
+double disp_lx = 0;
+double disp_ly = 0;
+double disp_rx = 0;
+double disp_ry = 0;
+
 double Display::passed;
 
+
+calib("/share/home/hara/workspace/fove/config/calibration/parameter.txt");
 
 void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)
 {
@@ -44,8 +52,6 @@ Display::Display(int h, int w):
         //cv::Mat image=cv::imread("./../display_test.jpeg", 1);
         //resize(image, image, cv::Size(), DISP_WIDTH/image.cols, DISP_HEIGHT/image.rows);
         //cv::cvtColor(image, input_image, cv::COLOR_BGR2RGB);
-        
-        
     }
 
 Display::~Display(void){}
@@ -111,7 +117,8 @@ void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0�
     //show_image(input_image);
     //show_polygon();
     passed = get_passed_time();
-    calibration_v2();
+    if(check_mode() == 0) calibration_v2();
+    else show_gaze_point(get_disp_gaze());
 }
 
 void Display::show_image(cv::Mat image){
@@ -185,4 +192,18 @@ void Display::calibration_v2(void){
     x = -1* range + x_index * range / 2;
     y = range - y_index * range / 2;
     show_polygon();
+}
+
+void Display::show_gaze_point(std::tuple<double, double, double, double> disp_gaze){
+    disp_lx = std::get<0>(disp_gaze);
+    disp_ly = std::get<1>(disp_gaze);
+    disp_rx = std::get<2>(disp_gaze);
+    disp_ry = std::get<3>(disp_gaze);
+    std::cout << "show: " << disp_lx << " " << disp_ly << std::endl;
+    glBegin(GL_POLYGON);
+    glVertex2d(disp_lx-CALIB_SQURE, disp_ly-CALIB_SQURE);
+    glVertex2d(disp_lx-CALIB_SQURE, disp_ly+CALIB_SQURE);
+    glVertex2d(disp_lx+CALIB_SQURE, disp_ly+CALIB_SQURE);
+    glVertex2d(disp_ly+CALIB_SQURE, disp_ly-CALIB_SQURE);
+    glEnd();
 }

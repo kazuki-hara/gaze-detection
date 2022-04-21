@@ -13,6 +13,7 @@ set(SOURCES
     ./fove/display.cpp
     #./gaze/gaze_main.cpp
     ./utils/utils.cpp
+    ./calibration/calibration.cpp
 )
 
 # ここに.hファイル
@@ -22,6 +23,7 @@ set(HEADERS
     ./fove/display.h
     ./main.h
     ./utils/utils.h
+    ./calibration/calibration.h
 )
 
 # Mainという実行ファイルを生成
