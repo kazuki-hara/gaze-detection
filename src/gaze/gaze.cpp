@@ -175,7 +175,7 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
                             mu = cv::moments(contours[j]);
                             mc = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
 
-                            if(100 < area && area < 1500 && std::abs(width - height) < 20){
+                            if(80 < area && area < 1500 && std::abs(width - height) < 30){
                                 center_x = (double)mc.x;
                                 center_y = (double)mc.y;
                                 return std::make_tuple(center_x, center_y);
