@@ -6,11 +6,13 @@ import pandas as pd
 INF = 10e9
 
 data_dir = "/share/home/hara/Data/fove/tmp/"
-data_dir = "/share/home/hara/Data/fove/gaze/old_data/20220419/02/"
+#data_dir = "/share/home/hara/Data/fove/gaze/old_data/20220419/02/"
 pupil_pos_txt_path = data_dir + "pupil0.txt"
 time_txt_path = data_dir + "time0.txt"
 
-create_figure =  False
+create_figure =  True
+
+np.seterr(divide='ignore', invalid='ignore')
 
 class Calibration:
     def __init__(self):
@@ -21,7 +23,7 @@ class Calibration:
         # 注視中のデータを抽出
         #self.gaze_begin_time = [3.0, 11.0, 18.0, 25.0, 32.0, INF]
         self.calib_point_num = 25
-        self.gaze_begin_time = [i*7.0 + 3.0 for i in range(self.calib_point_num)] + [INF]
+        self.gaze_begin_time = [i*5.0 for i in range(self.calib_point_num)] + [INF]
         self.gaze_continuation_time = 4.0
         self.extracted_gaze_data = []
 
@@ -34,8 +36,12 @@ class Calibration:
         f = open(txt_path, 'r')
         data_list = f.readlines()
         for str_data in data_list:
-            lx, ly, rx, ry = map(float, str_data[:-1].split())
-            self.pupil_list.append([lx, ly, rx, ry])
+            try:
+                lx, ly, rx, ry = map(float, str_data[:-1].split())
+                self.pupil_list.append([lx, ly, rx, ry])
+            except:
+                pass
+            
     
 
     def read_time_data(self, txt_path):
@@ -47,7 +53,8 @@ class Calibration:
     def extract_gaze_data(self):
         gaze_index = 0  # center, top, right, bottom, left
         gaze_data = []
-        for pupil_data, time in zip(self.pupil_list, self.time_list):
+        data_length = min(len(self.pupil_list), len(self.time_list))
+        for pupil_data, time in zip(self.pupil_list[:data_length], self.time_list[:data_length]):
             if time < self.gaze_begin_time[gaze_index]:
                 continue
             elif self.gaze_begin_time[gaze_index] <= time and time < self.gaze_begin_time[gaze_index] + self.gaze_continuation_time:
@@ -133,27 +140,63 @@ class Calibration:
         ly_disp = np.reshape(ly_disp, (5, 5))
         rx_disp = np.reshape(rx_disp, (5, 5))
         ry_disp = np.reshape(ry_disp, (5, 5))
-        x_disp = np.reshape(np.array([-300, -150, 0, 150, 300]*5), (5, 5)) # 表示した注視点のx座標(理論値)
-        y_disp = np.reshape(np.array([300]*5 + [150]*5 + [0]*5 + [-150]*5 + [-300]*5), (5, 5)) # 表示した注視点のy座標(理論値)
+        x_disp = np.reshape(np.array([-200, -100, 0, 100, 200]*5), (5, 5)) # 表示した注視点のx座標(理論値)
+        y_disp = np.reshape(np.array([200]*5 + [100]*5 + [0]*5 + [-100]*5 + [-200]*5), (5, 5)) # 表示した注視点のy座標(理論値)
 
+        
+        def create_figure(name):
+            fig=plt.figure()
+            fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+            x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
+            ax11=fig.add_subplot(111,projection='3d')
+            if name == "lx":
+                ax11.plot_wireframe(LX, LY, lx_disp-x_disp)
+            elif name == "ly":
+                ax11.plot_wireframe(LX, LY, ly_disp-y_disp)
+            elif name == "rx":
+                ax11.plot_wireframe(RX, RY, rx_disp-x_disp)
+            else:
+                ax11.plot_wireframe(RX, RY, ry_disp-y_disp)
+            ax11.set_xlabel("$x_{pupil} [px]$")
+            ax11.set_ylabel("$y_{pupil} [px]$")
+            if name == "lx":
+                ax11.set_zlabel("$error_{lx} [px]$")
+            elif name == "ly":
+                ax11.set_zlabel("$error_{ly} [px]$")
+            elif name == "rx":
+                ax11.set_zlabel("$error_{rx} [px]$")
+            else:
+                ax11.set_zlabel("$error_{ry} [px]$")
+            
+            ax11.set_zlim(-15, 15)
+            #ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
+            fig.tight_layout()
+            plt.savefig(name+".pdf")
+        
+        create_figure("lx")
+        create_figure("ly")
+        create_figure("rx")
+        create_figure("ry")
+
+        """
         # グラフ作成
         fig=plt.figure()
         fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
         # lx
         ax11=fig.add_subplot(111,projection='3d')
-        ax11.view_init(elev=10)
-        ax11.plot_wireframe(LX, LY, x_disp)
-        ax11.scatter(LX, LY, lx_disp, color = "red")
+        #ax11.view_init(elev=10)
+        ax11.plot_wireframe(LX, LY, lx_disp-x_disp)
+        #ax11.scatter(LX, LY, lx_disp-x_disp, color = "red")
         ax11.set_xlabel("$x_{pupil} [px]$")
         ax11.set_ylabel("$y_{pupil} [px]$")
         ax11.set_zlabel("$x_{disp} [px]$")
-        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        #ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
         fig.tight_layout()
-        plt.savefig("lx.pdf")
+        plt.show("lx.pdf")
 
         #fig=plt.figure()
-        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
         # lx
         ax11=fig.add_subplot(111,projection='3d')
         ax11.view_init(elev=10)
@@ -162,12 +205,12 @@ class Calibration:
         ax11.set_xlabel("$x_{pupil} [px]$")
         ax11.set_ylabel("$y_{pupil} [px]$")
         ax11.set_zlabel("$y_{disp} [px]$")
-        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
         fig.tight_layout()
         plt.savefig("ly.pdf")
 
         fig=plt.figure()
-        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
         # lx
         ax11=fig.add_subplot(111,projection='3d')
         ax11.view_init(elev=10)
@@ -176,12 +219,12 @@ class Calibration:
         ax11.set_xlabel("$x_{pupil} [px]$")
         ax11.set_ylabel("$y_{pupil} [px]$")
         ax11.set_zlabel("$x_{disp} [px]$")
-        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
         fig.tight_layout()
         plt.savefig("rx.pdf")
 
         fig=plt.figure()
-        x, y = np.meshgrid(np.linspace(-300, 300, 5), np.linspace(-300, 300, 5))
+        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
         # lx
         ax11=fig.add_subplot(111,projection='3d')
         ax11.view_init(elev=10)
@@ -190,7 +233,7 @@ class Calibration:
         ax11.set_xlabel("$x_{pupil} [px]$")
         ax11.set_ylabel("$y_{pupil} [px]$")
         ax11.set_zlabel("$y_{disp} [px]$")
-        ax11.set_zticks(np.array([-300, -150, 0, 150, 300]))
+        ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
         fig.tight_layout()
         plt.savefig("ry.pdf")
 
@@ -198,7 +241,7 @@ class Calibration:
         print(pd.DataFrame(pd.Series((ly_disp - y_disp).ravel()).describe()))
         print(pd.DataFrame(pd.Series((rx_disp - x_disp).ravel()).describe()))
         print(pd.DataFrame(pd.Series((ry_disp - y_disp).ravel()).describe()))
-        
+        """
         
 
         
@@ -208,12 +251,12 @@ class Calibration:
     def calculation_pupil_to_display(self):
         # データ
         lx, ly, rx, ry = self.calculation_distance_from_center()        
-        lx = np.array(lx)
-        ly = np.array(ly)
-        rx = np.array(rx)
-        ry = np.array(ry)
-        disp_x = np.array([-300, -150, 0, 150, 300]*5)
-        disp_y = np.array([300] * 5 + [150]*5+[0]*5+[-150]*5+[-300]*5)
+        lx = np.array(lx)[:self.calib_point_num]
+        ly = np.array(ly)[:self.calib_point_num]
+        rx = np.array(rx)[:self.calib_point_num]
+        ry = np.array(ry)[:self.calib_point_num]
+        disp_x = np.array([-200, -100, 0, 100, 200]*5)
+        disp_y = np.array([200] * 5 + [100]*5+[0]*5+[-100]*5+[-200]*5)
 
         # 近似式 xx + xy + yy + x + y + 1
         #l_exp = np.array([(lambda x: x*x)(lx), (lambda x, y: x*y)(lx, ly), (lambda y: y*y)(ly), lx, ly, np.ones(self.calib_point_num)])
@@ -227,11 +270,13 @@ class Calibration:
         rx_param = np.linalg.lstsq(r_exp.T, disp_x, rcond=None)[0]
         ry_param = np.linalg.lstsq(r_exp.T, disp_y, rcond=None)[0]
         param = {"lx": lx_param, "ly": ly_param, "rx": rx_param, "ry": ry_param}
-        print(param)
+
         with open("/share/home/hara/workspace/fove/config/calibration/parameter.txt", "w") as f:
-            for parameter in param.values():
-                f.writelines(",".join(map(str, parameter))+"\n")
-                f.writelines(",".join(map(str,self.pupil_pos[12]))+"\n")
+            f.writelines(",".join(map(str, param["lx"]))+"\n")
+            f.writelines(",".join(map(str, param["ly"]))+"\n")
+            f.writelines(",".join(map(str, param["rx"]))+"\n")
+            f.writelines(",".join(map(str, param["ry"]))+"\n")
+            f.writelines(",".join(map(str,self.pupil_pos[12]))+"\n")
         # 近似できているか確認
         if create_figure:
             self.calib_test(param, lx, ly, rx, ry, disp_x, disp_y)
@@ -241,6 +286,8 @@ class Calibration:
 
 
 if __name__ == "__main__":
+    import warnings
+    warnings.simplefilter('ignore')
     calib = Calibration()
     calib.read_pupil_data(pupil_pos_txt_path)
     calib.read_time_data(time_txt_path)
