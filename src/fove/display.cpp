@@ -5,7 +5,6 @@
 #include "display.h"
 #include "./../main.h"
 #include "./../camera/camera.h"
-#include "./../calibration/calibration.h"
 
 bool disp_on_Fove = true;
 static double ex[2] = {-3.0, 3.0}, ey = 0.0, ez = 0.0, cx[2] = {-3.0, 3.0}, cy = 0.0, cz = 0.0;
@@ -27,7 +26,6 @@ double disp_ry = 0;
 double Display::passed;
 
 
-calib("/share/home/hara/workspace/fove/config/calibration/parameter.txt");
 
 void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)
 {
@@ -118,7 +116,9 @@ void Display::display_for_one_eye(int i){ // 片方のディスプレイ（i=0�
     //show_polygon();
     passed = get_passed_time();
     if(check_mode() == 0) calibration_v2();
-    else show_gaze_point(get_disp_gaze());
+    else{
+        show_gaze_point(get_disp_gaze());
+    }
 }
 
 void Display::show_image(cv::Mat image){
@@ -131,10 +131,11 @@ void Display::show_image(cv::Mat image){
 
 void Display::show_polygon(void){    
     glBegin(GL_POLYGON);
-    glVertex2d(x-CALIB_SQURE, y-CALIB_SQURE);
-    glVertex2d(x-CALIB_SQURE, y+CALIB_SQURE);
-    glVertex2d(x+CALIB_SQURE, y+CALIB_SQURE);
-    glVertex2d(x+CALIB_SQURE, y-CALIB_SQURE);
+    if(check_detect_pupil_flag() == false) glColor3d(0.0, 1.0, 0.0);
+    glVertex2d(x-CALIB_SQURE/2, y-CALIB_SQURE/2);
+    glVertex2d(x-CALIB_SQURE/2, y+CALIB_SQURE/2);
+    glVertex2d(x+CALIB_SQURE/2, y+CALIB_SQURE/2);
+    glVertex2d(x+CALIB_SQURE/2, y-CALIB_SQURE/2);
     glEnd();
 }
 
@@ -184,9 +185,9 @@ void Display::calibration(void){
 }
 
 void Display::calibration_v2(void){
-    double range = 300.0;
+    double range = 200.0;
     int index;
-    index = ((int)passed) / 7;
+    index = ((int)passed) / 5;
     int x_index = index % 5;
     int y_index = (int)(index / 5);
     x = -1* range + x_index * range / 2;
@@ -199,11 +200,20 @@ void Display::show_gaze_point(std::tuple<double, double, double, double> disp_ga
     disp_ly = std::get<1>(disp_gaze);
     disp_rx = std::get<2>(disp_gaze);
     disp_ry = std::get<3>(disp_gaze);
-    std::cout << "show: " << disp_lx << " " << disp_ly << std::endl;
+
+    glColor3d(1.0, 0.1, 0.1);
     glBegin(GL_POLYGON);
-    glVertex2d(disp_lx-CALIB_SQURE, disp_ly-CALIB_SQURE);
-    glVertex2d(disp_lx-CALIB_SQURE, disp_ly+CALIB_SQURE);
-    glVertex2d(disp_lx+CALIB_SQURE, disp_ly+CALIB_SQURE);
-    glVertex2d(disp_ly+CALIB_SQURE, disp_ly-CALIB_SQURE);
+    glVertex2d(disp_lx-CALIB_SQURE/2, disp_ly-CALIB_SQURE/2);
+    glVertex2d(disp_lx-CALIB_SQURE/2, disp_ly+CALIB_SQURE/2);
+    glVertex2d(disp_lx+CALIB_SQURE/2, disp_ly+CALIB_SQURE/2);
+    glVertex2d(disp_lx+CALIB_SQURE/2, disp_ly-CALIB_SQURE/2);
+    glEnd();
+
+    glColor3d(0.1, 0.1, 1.0);
+    glBegin(GL_POLYGON);
+    glVertex2d(disp_rx-CALIB_SQURE/2, disp_ry-CALIB_SQURE/2);
+    glVertex2d(disp_rx-CALIB_SQURE/2, disp_ry+CALIB_SQURE/2);
+    glVertex2d(disp_rx+CALIB_SQURE/2, disp_ry+CALIB_SQURE/2);
+    glVertex2d(disp_rx+CALIB_SQURE/2, disp_ry-CALIB_SQURE/2);
     glEnd();
 }

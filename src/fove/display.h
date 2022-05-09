@@ -1,7 +1,6 @@
 #include <GL/glut.h>
 #include <tuple>
 #include <string>
-#include "./../calibration/calibration.h"
 
 
 #define DISP_WIDTH  2560
@@ -38,4 +37,3 @@ private:
 };
 
 void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div);
-Calibration calib(std::string);
