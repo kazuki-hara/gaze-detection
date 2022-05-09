@@ -29,6 +29,7 @@ std::chrono::system_clock::time_point  start, now;
 double msec;
 bool exit_flag = false;
 int mode;
+bool detect_pupil_flag = true;
 std::tuple<double, double, double, double> disp_gaze;
 
 
@@ -74,15 +75,17 @@ int check_mode(void){
     return mode;
 }
 
+bool check_detect_pupil_flag(void){
+    return detect_pupil_flag;
+}
+
 std::tuple<double, double, double, double>get_disp_gaze(void){
     return disp_gaze;
 }
 
 int main(int argc, char *argv[]){
-    std::cout << argv[1] << std::endl;
-    if(argv[1] == "calibration") mode = 0;
-    else mode = 1;
-
+    mode = std::stoi(argv[1]);
+    std::cout << mode << std::endl;
 
     Camera eye_camera(Fove);
     start = std::chrono::system_clock::now();
@@ -113,6 +116,7 @@ int main(int argc, char *argv[]){
     std::string image_dir = "/share/home/hara/Data/fove/tmp/image/";
 
     int i = 0;
+    Calibration calib("/share/home/hara/workspace/fove/config/calibration/parameter.txt");
 
     while(true){
         if(eye_camera.check_device_opened()){
@@ -126,6 +130,9 @@ int main(int argc, char *argv[]){
             double ry = std::get<3>(pupil_pos);
             fprintf(pupil_log, "%f %f %f %f\n", lx, ly, rx, ry);
 
+            if(lx != -1 || ly != -1 || rx != -1 || ry != -1) detect_pupil_flag = true;
+            else detect_pupil_flag = false;
+
             if(mode == 1){
                 disp_gaze = calib.calcuration_gaze_point(lx, ly, rx, ry);
             }
@@ -138,10 +145,10 @@ int main(int argc, char *argv[]){
         //    cv::imshow("雲台", s_frame);
         //}
         if(mode == 0){
-            if(get_passed_time() > 175){
+            if(get_passed_time() > 125){
                 std::cout << "finish" << std::endl;
                 fclose(time_log);
-                fclose(gaze_log);
+                fclose(pupil_log);
                 break;
             }
         }
