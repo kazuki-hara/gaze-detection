@@ -20,22 +20,18 @@ void remove_outside_area(cv::Mat& binarized_image){
     int height = binarized_image.rows;
     int width = binarized_image.cols;
 
-    int y_top = 0;
-    int y_bottom = height - 1;
-    bool inside = false;
-    for(int y=0; y<height; y++){
-        for(int x=0; x<width; x++){
+    for(int x=0; x<width; x++){
+        for(int y=0; y<height; y++){
             if(binarized_image.at<uchar>(y, x) == 0){
                 binarized_image.at<uchar>(y, x) = 255;
             }
             else{
-                inside = true;
                 break;
             }
         }
     }
-    for(int y=0; y<height; y++){
-        for(int x=width-1; x>=0; x--){
+    for(int x=0; x<width; x++){
+        for(int y=height-1; y>=0; y--){
             if(binarized_image.at<uchar>(y, x) == 0){
                 binarized_image.at<uchar>(y, x) = 255;
             }
@@ -57,6 +53,13 @@ cv::Mat remove_outside_area_v2(cv::Mat binarized_image){
     }
 
     cv::drawContours(dist, contours_subset,-1,cv::Scalar(0),-1);
+    return dist;
+}
+
+
+cv::Mat remove_outside_area_v3(cv::Mat binarized_image){
+    cv::Mat dist;
+    dist = cv::Mat(binarized_image, cv::Rect(35, 12, 230, 212));
     return dist;
 }
 
@@ -88,30 +91,126 @@ cv::Mat draw_hough_circles(cv::Mat original_image, std::vector<cv::Vec3f> left_c
     return dist;
 }
 
+cv::Mat draw_hough_circle(cv::Mat original_image, cv::Vec3f circle){
+    cv::Mat dist = original_image.clone();
+    double x, y, radius;
+
+    x = circle[0];
+    y = circle[1];
+    radius = circle[2];
+    cv::circle(dist, cv::Point(x, y), radius, cv::Scalar(0,0,200), 3, 4);
+    return dist;
+}
+
+cv::Mat draw_pupil_edges(cv::Mat input_image, cv::Mat binarized_image, std::vector<cv::Vec3f> circles){
+    cv::Mat dist =  input_image.clone();
+    
+    double hough_circle_center_x, hough_circle_center_y;
+
+    remove_outside_area(binarized_image);
+
+    if(circles.size() >= 1){
+        for(unsigned int i = 0; i<circles.size(); i++){
+            hough_circle_center_x = (int)circles[i][0];
+            hough_circle_center_y = (int)circles[i][1];
+
+            if(binarized_image.at<uchar>(hough_circle_center_y, hough_circle_center_x) == 0){
+                int top_x = hough_circle_center_x;
+                int top_y = hough_circle_center_y;
+
+                while(true){
+                    if(binarized_image.at<uchar>(top_y-1, top_x) == 0){
+                        top_y -= 1;
+                    }
+                    else break;
+                }
+                std::vector<std::vector<cv::Point>> contours;
+                cv::findContours(binarized_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+                cv::Moments mu;
+                cv::Point2f mc;
+                for(unsigned int j =0; j < contours.size(); j++){
+                    for(unsigned int k=0; k < contours[j].size(); k++){
+                        if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
+                            for(unsigned int l=0; l < contours[j].size(); l++){
+                                int x = contours[j][l].x;
+                                int y = contours[j][l].y;
+                                dist.at<cv::Vec3b>(y, x) = cv::Vec3b(0,0,255);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return dist;
+}
+
+cv::Mat draw_pupil_edge(cv::Mat eye_image, int x, int y){
+    cv::Mat dist =  eye_image.clone();
+    cv::Mat preprocessed_image = eye_image.clone();
+
+    cv::cvtColor(preprocessed_image, preprocessed_image, CV_BGR2GRAY);
+    cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
+    remove_outside_area(preprocessed_image);
+    cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
+    cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, 128);
+
+    if(preprocessed_image.at<uchar>(y, x) == 0){
+        int top_x = x;
+        int top_y = y;
+
+        while(true){
+            if(preprocessed_image.at<uchar>(top_y-1, top_x) == 0){
+                top_y -= 1;
+            }
+            else break;
+        }
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(preprocessed_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        cv::Moments mu;
+        cv::Point2f mc;
+        for(unsigned int j =0; j < contours.size(); j++){
+            for(unsigned int k=0; k < contours[j].size(); k++){
+                if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
+                    for(unsigned int l=0; l < contours[j].size(); l++){
+                        int x = contours[j][l].x;
+                        int y = contours[j][l].y;
+                        dist.at<cv::Vec3b>(y, x) = cv::Vec3b(0,0,255);
+                    }
+                }
+            }
+        }
+    }
+    return dist;
+}
+
 
 EyeInfoGetterV2::EyeInfoGetterV2(void){}
 EyeInfoGetterV2::~EyeInfoGetterV2(void){}
 
-// 両目の画像をグレースケール化->左目と右目に分割
+// 左目と右目に分割
 std::tuple<cv::Mat, cv::Mat> EyeInfoGetterV2::convert_image(cv::Mat original_image){
     remove_blank_line(original_image);
-    cv::Mat gray_image;
-    cv::cvtColor(original_image, gray_image, CV_BGR2GRAY);
-    cv::Mat left_eye_image;
-    cv::Mat right_eye_image;
-    left_eye_image = cv::Mat(gray_image, cv::Rect(0, 0, 320, gray_image.size().height));
-    right_eye_image = cv::Mat(gray_image, cv::Rect(320, 0, gray_image.size().width - 320, gray_image.size().height));
+    cv::Mat left_eye_image = cv::Mat(original_image, cv::Rect(35, 12, 230, 200));
+    cv::Mat right_eye_image= cv::Mat(original_image, cv::Rect(360, 12, 230, 200));
     return std::make_tuple(left_eye_image, right_eye_image);
 }
 
-// 二値化-> 外側除去 -> 平滑化->エッジ検出->平滑化
+// グレースケール変換->二値化-> 外側除去 -> 平滑化->エッジ検出->平滑化
 void EyeInfoGetterV2::preprocess(cv::Mat& eye_image){
+    cv::cvtColor(eye_image, eye_image, CV_BGR2GRAY);
+    //cv::imwrite("1.png", eye_image);
     cv::threshold(eye_image, eye_image, BINARY_THRES, 255, cv::THRESH_BINARY);
+    //cv::imwrite("2.png", eye_image);
     remove_outside_area(eye_image);
+    //cv::imwrite("3.png", eye_image);
     cv::GaussianBlur(eye_image, eye_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
+    //cv::imwrite("4.png", eye_image);
     cv::Canny(eye_image, eye_image, CANNY_THRES/2, CANNY_THRES);
+    //cv::imwrite("5.png", eye_image);
     cv::GaussianBlur(eye_image, eye_image, cv::Size(SECOND_GAUSS_K_SIZE, SECOND_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
 }
+
 
 // 画像から円を検出
 std::vector<cv::Vec3f> EyeInfoGetterV2::detect_pupil_circle(cv::Mat eye_image){
@@ -120,6 +219,46 @@ std::vector<cv::Vec3f> EyeInfoGetterV2::detect_pupil_circle(cv::Mat eye_image){
             HOUGH_MIN_CENTER_DIST, CANNY_THRES,
             HOUGH_VOTE, HOUGH_MIN_RADIUS, HOUGH_MAX_RADIUS);
     return circles;
+}
+
+
+int EyeInfoGetterV2::select_pupil_circle(cv::Mat input_image, std::vector<cv::Vec3f> circles){
+    double index = -1;
+    if(circles.size() >= 1){
+        int matching_image_size = 40;
+        cv::Mat matching_image = cv::Mat::zeros(matching_image_size, matching_image_size, CV_8UC1);
+        for(int y = 0; y < matching_image_size; y++){
+            for(int x = 0; x < matching_image_size; x++){
+                matching_image.at<uchar>(y, x) = 255;
+            }
+        }
+        cv::circle(matching_image, cv::Point(matching_image_size/2, matching_image_size/2), 15, 0, -1, CV_AA);
+
+        cv::Mat eye_image = input_image.clone();
+
+        cv::cvtColor(eye_image, eye_image, CV_BGR2GRAY);
+        cv::threshold(eye_image, eye_image, BINARY_THRES, 255, cv::THRESH_BINARY);
+        cv::GaussianBlur(eye_image, eye_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
+        
+        double score = -1;
+        for(unsigned int i = 0; i < circles.size(); i++){
+            int x = (int)circles[i][0];
+            int y = (int)circles[i][1];
+            if(matching_image_size/2 <= x && x < eye_image.size().width - matching_image_size/2 && matching_image_size/2 <= y && y < eye_image.size().height - matching_image_size/2){
+                cv::Mat eye_image_around_circle = cv::Mat(eye_image, cv::Rect(x - matching_image_size/2, y - matching_image_size/2, 40, 40));
+                cv::Mat result_image;
+                cv::matchTemplate(eye_image_around_circle, matching_image, result_image, CV_TM_CCOEFF_NORMED);
+                double score_tmp = 0;
+                cv::Point max_pt;
+                cv::minMaxLoc(result_image, NULL, &score_tmp, NULL, &max_pt);
+                if(score_tmp > score){
+                    score = score_tmp;
+                    index = i;
+                }
+            }
+        }
+    }
+    return index;
 }
 
 // 二値化画像から瞳孔重心を算出
@@ -157,9 +296,9 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
                     for(unsigned int k=0; k < contours[j].size(); k++){
                         if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
                             area = cv::contourArea(contours.at(j));
-                            int x_min = 320;
+                            int x_min = binarized_image.size().width;
                             int x_max = 0;
-                            int y_min = 240;
+                            int y_min = binarized_image.size().height;
                             int y_max = 0;
                             for(unsigned int l=0; l < contours[j].size(); l++){
                                 int x = contours[j][l].x;
@@ -171,11 +310,12 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
                             }
                             width = x_max - x_min;
                             height = y_max - y_min;
+                            //std::cout << width << " " << height << std::endl;
 
                             mu = cv::moments(contours[j]);
                             mc = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
 
-                            if(80 < area && area < 1500 && std::abs(width - height) < 30){
+                            if(100 < area && area < 1500 && std::abs(width - height) < 20){
                                 center_x = (double)mc.x;
                                 center_y = (double)mc.y;
                                 return std::make_tuple(center_x, center_y);
@@ -196,37 +336,185 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
     return std::make_tuple(center_x, center_y);
 }
 
+
+std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity_v2(cv::Mat eye_image, cv::Vec3f circle){
+    double hough_circle_center_x = circle[0];
+    double hough_circle_center_y = circle[1];
+
+    cv::Mat preprocessed_image = eye_image.clone();
+
+    cv::cvtColor(preprocessed_image, preprocessed_image, CV_BGR2GRAY);
+    cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
+    remove_outside_area(preprocessed_image);
+    cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
+    cv::threshold(preprocessed_image, preprocessed_image, 200, 255, 0);
+
+    if(preprocessed_image.at<uchar>(hough_circle_center_y, hough_circle_center_x) < 255){
+        int top_x = hough_circle_center_x;
+        int top_y = hough_circle_center_y;
+
+        while(true){
+            if(preprocessed_image.at<uchar>(top_y-1, top_x) == 0){
+                top_y -= 1;
+            }
+            else break;
+        }
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(preprocessed_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        cv::Moments mu;
+        cv::Point2f mc;
+        for(unsigned int j =0; j < contours.size(); j++){
+            for(unsigned int k=0; k < contours[j].size(); k++){
+                if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
+                    mu = cv::moments(contours[j]);
+                    if(mu.m00 != 0){
+                        mc = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
+                        return std::make_tuple((double)mc.x, (double)mc.y);
+                    }
+                }
+            }
+        }
+    }
+    return std::make_tuple(-1, -1);
+}
+
+std::tuple<bool, cv::RotatedRect> EyeInfoGetterV2::pupil_center_ellipse(cv::Mat eye_image, cv::Vec3f circle){
+    double hough_circle_center_x = circle[0];
+    double hough_circle_center_y = circle[1];
+
+    cv::Mat preprocessed_image = eye_image.clone();
+
+    cv::cvtColor(preprocessed_image, preprocessed_image, CV_BGR2GRAY);
+    cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
+    remove_outside_area(preprocessed_image);
+    cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
+    cv::threshold(preprocessed_image, preprocessed_image, 200, 255, cv::THRESH_BINARY);
+    //cv::imshow("preprocessed", preprocessed_image);
+
+    cv::RotatedRect box;
+    if(preprocessed_image.at<uchar>(hough_circle_center_y, hough_circle_center_x) < 255){
+        int top_x = hough_circle_center_x;
+        int top_y = hough_circle_center_y;
+
+        while(true){
+            if(preprocessed_image.at<uchar>(top_y-1, top_x) == 0){
+                top_y -= 1;
+            }
+            else break;
+        }
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(preprocessed_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        for(unsigned int j =0; j < contours.size(); j++){
+            for(unsigned int k=0; k < contours[j].size(); k++){
+                if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
+                    // 楕円フィッティング
+                    if(contours[j].size() >=5){
+                        box = cv::fitEllipse(contours[j]);
+                        return std::make_tuple(true, box);
+                    }
+                }
+            }
+        }
+    }
+    return std::make_tuple(false, box);
+}
+
+
 // 瞳孔位置検出一連の関数
 std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center(cv::Mat original_image){
     // 左目と右目に分割したグレースケール画像を取得
-    std::tuple<cv::Mat, cv::Mat> converted_gray_images = convert_image(original_image);
-    cv::Mat left_gray_image = std::get<0>(converted_gray_images);
-    cv::Mat right_gray_image = std::get<1>(converted_gray_images);
+    std::tuple<cv::Mat, cv::Mat> converted_images = convert_image(original_image);
+    cv::Mat left_image = std::get<0>(converted_images);
+    cv::Mat right_image = std::get<1>(converted_images);
+    cv::Mat left_image_copy = left_image.clone();
+    cv::Mat right_image_copy = right_image.clone();
+    preprocess(left_image_copy);
+    preprocess(right_image_copy);
 
-    // 左目の瞳孔位置検出
-    cv::Mat left_binarized_image;
-    cv::threshold(left_gray_image, left_binarized_image, BINARY_THRES, 255, cv::THRESH_BINARY);
-    preprocess(left_gray_image);
-    std::vector<cv::Vec3f> left_circles = detect_pupil_circle(left_gray_image);
-    std::tuple<double, double> left_center = cal_center_of_gravity(left_binarized_image, left_circles);
-    double lx = std::get<0>(left_center);
-    double ly = std::get<1>(left_center);
-    l_x = lx;
-    l_y = ly;
+    // ハフ変換による円検出
+    std::vector<cv::Vec3f> left_circles = detect_pupil_circle(left_image_copy);
+    std::vector<cv::Vec3f> right_circles = detect_pupil_circle(right_image_copy);
+
+    // テンプレートマッチングによる円判定
+    int left_pupil_circle_index = select_pupil_circle(left_image, left_circles);
+    int right_pupil_circle_index = select_pupil_circle(right_image, right_circles);
+
+    // 左目の瞳孔中心計算
+    double lx = -1, ly = -1;
+    if(left_pupil_circle_index != -1){
+        std::tuple<double, double> left_pupil_center = cal_center_of_gravity_v2(left_image, left_circles[left_pupil_circle_index]);
+        lx = std::get<0>(left_pupil_center);
+        ly = std::get<1>(left_pupil_center);
+        if(lx == -1 || ly == -1) std::cout << "left circle is not pupil" << std::endl;
+    }else std::cout << "left circle is not found" << std::endl;
+
+    // 右目の瞳孔中心計算
+    double rx = -1, ry = -1;
+    if(right_pupil_circle_index != -1){
+        std::tuple<double, double> right_pupil_center = cal_center_of_gravity_v2(right_image, right_circles[right_pupil_circle_index]);
+        rx = std::get<0>(right_pupil_center);
+        ry = std::get<1>(right_pupil_center);
+        if(lx == -1 || ly == -1) std::cout << "right circle is not pupil" << std::endl;
+        cv::Mat edge_image = draw_pupil_edge(right_image, rx, ry);
+        imshow("edge", edge_image);
+    }else std::cout << " right circle is not found" << std::endl;
+
+    return std::make_tuple(lx, ly, rx, ry);
+}
 
 
-    // 右目の瞳孔位置検出
-    cv::Mat right_binarized_image;
-    cv::threshold(right_gray_image, right_binarized_image, BINARY_THRES, 255, cv::THRESH_BINARY);
-    preprocess(right_gray_image);
-    std::vector<cv::Vec3f> right_circles = detect_pupil_circle(right_gray_image);
-    std::tuple<double, double> right_center = cal_center_of_gravity(right_binarized_image, right_circles);
-    double rx = std::get<0>(right_center);
-    double ry = std::get<1>(right_center);
-    r_x = rx;
-    r_y = ry;
-    draw_hough_circles(original_image, left_circles, right_circles);
+std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_v2(cv::Mat original_image){
+    // 左目と右目に分割したグレースケール画像を取得
+    std::tuple<cv::Mat, cv::Mat> converted_images = convert_image(original_image);
+    cv::Mat left_image = std::get<0>(converted_images);
+    cv::Mat right_image = std::get<1>(converted_images);
+    cv::Mat left_image_copy = left_image.clone();
+    cv::Mat right_image_copy = right_image.clone();
+    preprocess(left_image_copy);
+    preprocess(right_image_copy);
+    std::vector<cv::Vec3f> left_circles = detect_pupil_circle(left_image_copy);
+    std::vector<cv::Vec3f> right_circles = detect_pupil_circle(right_image_copy);
 
+    int index = select_pupil_circle(left_image, left_circles);
+    double lx = -1, ly = -1, rx = -1, ry = -1;
+    l_x = -1, l_y = -1, r_x = -1, r_y = -1;
+    if(index != -1){
+        std::tuple<bool, cv::RotatedRect> pupil_info = pupil_center_ellipse(left_image, left_circles[index]);
+        bool success = std::get<0>(pupil_info);
+        if(success){
+            cv::RotatedRect box = std::get<1>(pupil_info);
+            left_box = box;
+            l_x = box.center.x;
+            l_y = box.center.y;
+            lx = box.center.x;
+            ly = box.center.y;
+            cv::ellipse(left_image, left_box, cv::Scalar(0, 128, 0), 1, CV_AA);
+            cv::imshow("left", left_image);
+        }else{
+            std::cout << "circle is not pupil" << std::endl;
+        }
+    }else{
+        std::cout << "circle not found" << std::endl;
+    }
+    index = select_pupil_circle(right_image, right_circles);
+    if(index != -1){
+        std::tuple<bool, cv::RotatedRect> pupil_info = pupil_center_ellipse(right_image, right_circles[index]);
+        bool success = std::get<0>(pupil_info);
+        if(success){
+            cv::RotatedRect box = std::get<1>(pupil_info);
+            right_box = box;
+            r_x = box.center.x;
+            r_y = box.center.y;
+            rx = box.center.x;
+            ry = box.center.y;
+            cv::ellipse(right_image, right_box, cv::Scalar(0, 128, 0), 1, CV_AA);
+            cv::imshow("right", right_image);
+        }else{
+            std::cout << "circle is not pupil" << std::endl;
+        }
+    }else{
+        std::cout << "circle not found" << std::endl;
+    }
     return std::make_tuple(lx, ly, rx, ry);
 }
 

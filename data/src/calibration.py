@@ -1,7 +1,10 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
+from sys import exit
 
 INF = 10e9
 
@@ -9,6 +12,9 @@ data_dir = "/share/home/hara/Data/fove/tmp/"
 #data_dir = "/share/home/hara/Data/fove/gaze/old_data/20220419/02/"
 pupil_pos_txt_path = data_dir + "pupil0.txt"
 time_txt_path = data_dir + "time0.txt"
+
+pupil_pos_txt_path = "/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt"
+time_txt_path = "/share/home/hara/Data/fove/pupil/hara/200/time0.txt"
 
 create_figure =  True
 
@@ -23,7 +29,7 @@ class Calibration:
         # 注視中のデータを抽出
         #self.gaze_begin_time = [3.0, 11.0, 18.0, 25.0, 32.0, INF]
         self.calib_point_num = 25
-        self.gaze_begin_time = [i*5.0 for i in range(self.calib_point_num)] + [INF]
+        self.gaze_begin_time = [i *5.0 + 0.5 for i in range(self.calib_point_num)] + [INF]
         self.gaze_continuation_time = 4.0
         self.extracted_gaze_data = []
 
@@ -37,7 +43,7 @@ class Calibration:
         data_list = f.readlines()
         for str_data in data_list:
             try:
-                lx, ly, rx, ry = map(float, str_data[:-1].split())
+                lx, ly, rx, ry, i = map(float, str_data[:-1].split())
                 self.pupil_list.append([lx, ly, rx, ry])
             except:
                 pass
@@ -61,15 +67,22 @@ class Calibration:
                 if not -1 in pupil_data:
                     gaze_data.append(pupil_data)
             else:
+                
                 self.extracted_gaze_data.append(gaze_data)
                 gaze_data = []
                 gaze_index += 1
         self.extracted_gaze_data.append(gaze_data)
         
+
+        
     
     def _remove_outliers(self, data_list):
         res = []
         mean = np.mean(data_list)
+        if np.isnan(mean):
+            for data in data_list:
+                print(data)
+            exit()
         standard_deviation = np.std(data_list)
         for data in data_list:
             if mean - standard_deviation * self.sigma_n <= data  and data <= mean + standard_deviation * self.sigma_n:
@@ -83,9 +96,10 @@ class Calibration:
             for i in range(4):
                 pupil_pos.append(np.mean(self._remove_outliers([data[i] for data in gaze_data])))
             self.pupil_pos.append(pupil_pos)
+        self.pupil_pos = self.pupil_pos[:25]
     
 
-    def calculation_distance_from_center(self):
+    def calcuration_distance_from_center(self):
         lx = []
         ly = []
         rx = []
@@ -178,79 +192,11 @@ class Calibration:
         create_figure("rx")
         create_figure("ry")
 
-        """
-        # グラフ作成
-        fig=plt.figure()
-        fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
-        # lx
-        ax11=fig.add_subplot(111,projection='3d')
-        #ax11.view_init(elev=10)
-        ax11.plot_wireframe(LX, LY, lx_disp-x_disp)
-        #ax11.scatter(LX, LY, lx_disp-x_disp, color = "red")
-        ax11.set_xlabel("$x_{pupil} [px]$")
-        ax11.set_ylabel("$y_{pupil} [px]$")
-        ax11.set_zlabel("$x_{disp} [px]$")
-        #ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
-        fig.tight_layout()
-        plt.show("lx.pdf")
 
-        #fig=plt.figure()
-        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
-        # lx
-        ax11=fig.add_subplot(111,projection='3d')
-        ax11.view_init(elev=10)
-        ax11.plot_wireframe(LX, LY, y_disp)
-        ax11.scatter(LX, LY, ly_disp, color = "red")
-        ax11.set_xlabel("$x_{pupil} [px]$")
-        ax11.set_ylabel("$y_{pupil} [px]$")
-        ax11.set_zlabel("$y_{disp} [px]$")
-        ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
-        fig.tight_layout()
-        plt.savefig("ly.pdf")
-
-        fig=plt.figure()
-        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
-        # lx
-        ax11=fig.add_subplot(111,projection='3d')
-        ax11.view_init(elev=10)
-        ax11.plot_wireframe(RX, RY, x_disp)
-        ax11.scatter(RX, RY, rx_disp, color = "red")
-        ax11.set_xlabel("$x_{pupil} [px]$")
-        ax11.set_ylabel("$y_{pupil} [px]$")
-        ax11.set_zlabel("$x_{disp} [px]$")
-        ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
-        fig.tight_layout()
-        plt.savefig("rx.pdf")
-
-        fig=plt.figure()
-        x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
-        # lx
-        ax11=fig.add_subplot(111,projection='3d')
-        ax11.view_init(elev=10)
-        ax11.plot_wireframe(RX, RY, y_disp)
-        ax11.scatter(RX, RY, ry_disp, color = "red")
-        ax11.set_xlabel("$x_{pupil} [px]$")
-        ax11.set_ylabel("$y_{pupil} [px]$")
-        ax11.set_zlabel("$y_{disp} [px]$")
-        ax11.set_zticks(np.array([-200, -100, 0, 100, 200]))
-        fig.tight_layout()
-        plt.savefig("ry.pdf")
-
-        print(pd.DataFrame(pd.Series((lx_disp - x_disp).ravel()).describe()))
-        print(pd.DataFrame(pd.Series((ly_disp - y_disp).ravel()).describe()))
-        print(pd.DataFrame(pd.Series((rx_disp - x_disp).ravel()).describe()))
-        print(pd.DataFrame(pd.Series((ry_disp - y_disp).ravel()).describe()))
-        """
-        
-
-        
-
-    
-
-    def calculation_pupil_to_display(self):
+    def calcuration_pupil_to_display(self):
         # データ
-        lx, ly, rx, ry = self.calculation_distance_from_center()        
+        lx, ly, rx, ry = self.calcuration_distance_from_center()    
+
         lx = np.array(lx)[:self.calib_point_num]
         ly = np.array(ly)[:self.calib_point_num]
         rx = np.array(rx)[:self.calib_point_num]
@@ -282,7 +228,8 @@ class Calibration:
             self.calib_test(param, lx, ly, rx, ry, disp_x, disp_y)
 
         return param
-        
+
+
 
 
 if __name__ == "__main__":
@@ -293,5 +240,5 @@ if __name__ == "__main__":
     calib.read_time_data(time_txt_path)
     calib.extract_gaze_data()
     calib.remove_outliers()
-    calib.calculation_distance_from_center()
-    calib.calculation_pupil_to_display()
+    calib.calcuration_distance_from_center()
+    calib.calcuration_pupil_to_display()

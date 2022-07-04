@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.backends.backend_pdf import PdfPages
 matplotlib.use('Agg')
+import numpy as np
+from calibration import Calibration
+
 preprocess_gaze_data_path = "/share/home/hara/Data/fove/gaze/old_data/20211015/01/gaze.txt"
 non_preprocess_data_path = "/share/home/hara/workspace/fove/src/build/gaze.txt"
 
@@ -158,9 +161,73 @@ def make_num_xy_fig(data, side):
         plt.savefig("r_num.png")
 
 
+def make_variance_xt_fig():
+    calib = Calibration()
+    calib.read_pupil_data("/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt")
+    calib.read_time_data("/share/home/hara/Data/fove/pupil/hara/200/time0.txt")
+    calib.extract_gaze_data()
+    calib.remove_outliers()
+
+    x_disp = np.reshape(np.array([-200, -100, 0, 100, 200]*5), (5, 5)) # 表示した注視点のx座標(理論値)
+    y_disp = np.reshape(np.array([200]*5 + [100]*5 + [0]*5 + [-100]*5 + [-200]*5), (5, 5)) # 表示した注視点のy座標(理論値)
+
+    lx_variance = []
+    ly_variance = []
+    rx_variance = []
+    ry_variance = []
+    for data_list in calib.extracted_gaze_data:
+        _lx = np.array([x[0] for x in data_list])
+        _ly = np.array([x[1] for x in data_list])
+        _rx = np.array([x[2] for x in data_list])
+        _ry = np.array([x[3] for x in data_list])
+        lx_variance.append(np.std(_lx))
+        ly_variance.append(np.std(_ly))
+        rx_variance.append(np.std(_rx))
+        ry_variance.append(np.std(_ry))
+    
+    lx_variance = np.reshape(lx_variance, (5,5))
+    ly_variance = np.reshape(ly_variance, (5,5))
+    rx_variance = np.reshape(rx_variance, (5,5))
+    ry_variance = np.reshape(ry_variance, (5,5))
+
+    def create_figure(name):
+        fig=plt.figure()
+        fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+        ax11=fig.add_subplot(111,projection='3d')
+        if name == "lx":
+            ax11.plot_wireframe(x_disp, y_disp, lx_variance)
+        elif name == "ly":
+            ax11.plot_wireframe(x_disp, y_disp, ly_variance)
+        elif name == "rx":
+            ax11.plot_wireframe(x_disp, y_disp, rx_variance)
+        else:
+            ax11.plot_wireframe(x_disp, y_disp, ry_variance)
+        ax11.set_xlabel("$x_{pupil} [px]$")
+        ax11.set_ylabel("$y_{pupil} [px]$")
+        if name == "lx":
+            ax11.set_zlabel("$std_{lx} [px]$")
+        elif name == "ly":
+            ax11.set_zlabel("$std_{ly} [px]$")
+        elif name == "rx":
+            ax11.set_zlabel("$std_{rx} [px]$")
+        else:
+            ax11.set_zlabel("$std_{ry} [px]$")
+        fig.tight_layout()
+        plt.savefig(name+"_std.pdf")
+    
+    create_figure("lx")
+    create_figure("ly")
+    create_figure("rx")
+    create_figure("ry")
+
+
+
+
+
 if __name__ == "__main__":
-    data, time_list = read_gaze_data("/share/home/hara/workspace/fove/src/build/gaze.txt")
-    make_xy_fig(data, "l")
-    make_xy_fig(data, "r")
-    xt_yt_fig(data, "x")
-    xt_yt_fig(data, "y")
+    #data, time_list = read_gaze_data("/share/home/hara/workspace/fove/src/build/gaze.txt")
+    #make_xy_fig(data, "l")
+    #make_xy_fig(data, "r")
+    #xt_yt_fig(data, "x")
+    #xt_yt_fig(data, "y")
+    make_variance_xt_fig()

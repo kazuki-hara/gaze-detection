@@ -185,7 +185,7 @@ void Display::calibration(void){
 }
 
 void Display::calibration_v2(void){
-    double range = 200.0;
+    double range = 300.0;
     int index;
     index = ((int)passed) / 5;
     int x_index = index % 5;

@@ -10,6 +10,7 @@ set(SOURCES
     ./gaze.cpp
     ./gaze_main.cpp
     ./../utils/utils.cpp
+    ./../utils/pbar.hpp
 )
 
 # ここに.hファイル

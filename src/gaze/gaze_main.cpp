@@ -6,36 +6,36 @@
 #include "gaze.h"
 #include "./../utils/utils.h"
 
+
 double x = 100.0;
 double y = 100.0;
 
 
-int main(void){
-    FILE* gaze_output;
-    gaze_output = fopen("gaze.txt", "w");
+void pupil_output(std::string image_dir, std::string file_path){
     EyeInfoGetterV2 eye_info_getter;
+    FILE* pupil_output_file;
+    pupil_output_file = fopen(file_path.c_str(), "w");
 
-    std::string image_dir = "/share/home/hara/Data/fove/calib/image/";
     int image_num = count_files_num(image_dir);
+
     for(int i = 0; i<image_num; i++){
+        std::cout << i << std::endl;
         cv::Mat input_image = cv::imread(image_dir + std::to_string(i) + ".png");
+        std::tuple<double, double, double, double> pupil_center = eye_info_getter.detect_pupil_center_v2(input_image);
+        double lx = std::get<0>(pupil_center);
+        double ly = std::get<1>(pupil_center);
+        double rx = std::get<2>(pupil_center);
+        double ry = std::get<3>(pupil_center);
+        fprintf(pupil_output_file, "%f %f %f %f %d\n", lx, ly, rx, ry, i);
         
-
-        std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(input_image);
-        cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(input_image, pupil_pos);
-        cv::resize(pupil_frame, pupil_frame, cv::Size(), 2, 2);
-
-
-        double lx = std::get<0>(pupil_pos);
-        double ly = std::get<1>(pupil_pos);
-        double rx = std::get<2>(pupil_pos);
-        double ry = std::get<3>(pupil_pos);
-        fprintf(gaze_output, "%f %f %f %f %d\n", lx, ly, rx, ry, i);
-
-        cv::imshow("Fove Eyes", pupil_frame);//画像を表示．
-
-
         int key = cv::waitKey(1);
     }
+    fclose(pupil_output_file);
+}
+
+int main(void){
+    std::string image_dir = "/share/home/hara/Data/fove/pupil/hara/200/image/";
+    std::string file_path = "/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt";
+    pupil_output(image_dir, file_path);
     return 0;
 }

@@ -7,7 +7,7 @@ rad_per_pix = 60 / 78
 
 from statistics import stdev, variance, median
 
-threshold = [3, 8, 10, 15, 17, 22, 24, 29, 31, 36]
+threshold = [i*5 for i in range(25)]
 
 def read_gaze_data(data_path):
     with open(data_path) as f:
@@ -102,9 +102,9 @@ def main(datas, index):
 
 if __name__ == "__main__":
     #data, index = read_gaze_data(preprocess_data_path)
-    data, index = read_gaze_data_time_data("/share/home/hara/workspace/fove/src/build/gaze.txt", "/share/home/hara/Data/fove/calib/time.txt")
+    data, index = read_gaze_data_time_data("/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt", "/share/home/hara/Data/fove/pupil/hara/200/time0.txt")
     #main(data, 700, None)
     main(data, index)
-    data, _ = read_gaze_data(non_preprocess_data_path)
+    data, _ = read_gaze_data("/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt")
     #main(data, 700, None)
     main(data, index)

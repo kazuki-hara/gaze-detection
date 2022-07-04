@@ -105,24 +105,27 @@ int main(int argc, char *argv[]){
     FILE* pupil_log;
     FILE* gaze_log;
     if(mode == 0){
-        time_log = fopen("/share/home/hara/Data/fove/tmp/time0.txt", "w");
-        pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil0.txt", "w");
+        //time_log = fopen("/share/home/hara/Data/fove/tmp/time0.txt", "w");
+        //pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil0.txt", "w");
+        time_log = fopen("/share/home/hara/Data/fove/pupil/saito/300/time0.txt", "w");
+        pupil_log = fopen("/share/home/hara/Data/fove/pupil/saito/300/pupil0.txt", "w");
     }else{
         time_log = fopen("/share/home/hara/Data/fove/tmp/time1.txt", "w");
         pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil1.txt", "w");
         gaze_log = fopen("/share/home/hara/Data/fove/tmp/gaze1.txt", "w");
     }
     
-    std::string image_dir = "/share/home/hara/Data/fove/tmp/image/";
+    std::string image_dir = "/share/home/hara/Data/fove/pupil/saito/300/image/";
 
     int i = 0;
+    
     Calibration calib("/share/home/hara/workspace/fove/config/calibration/parameter.txt");
 
     while(true){
         if(eye_camera.check_device_opened()){
             cv::Mat frame = eye_camera.get_frame();
             fprintf(time_log, "%f\n", get_passed_time());
-            //cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
+            cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
             std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
             double lx = std::get<0>(pupil_pos);
             double ly = std::get<1>(pupil_pos);
@@ -139,6 +142,7 @@ int main(int argc, char *argv[]){
 
             //cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(frame, pupil_pos);
             //cv::imshow("Fove", pupil_frame);
+            i++;
         }
         //if(stereo_camera.check_device_opened()){
         //    cv::Mat s_frame = stereo_camera.get_frame();
@@ -153,7 +157,6 @@ int main(int argc, char *argv[]){
             }
         }
         
-        i++;
     }
     return 0;
 }
