@@ -20,17 +20,20 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <unistd.h>
 #include "./calibration/calibration.h"
+#include "./cammount/cammount.h"
 
 
 #define Fove "FOVE Eyes: FOVE Eyes"
 #define PayCam "PayCam: PayCam"
 
-std::chrono::system_clock::time_point  start, now;
+std::chrono::system_clock::time_point start, now;
 double msec;
 bool exit_flag = false;
 int mode;
 bool detect_pupil_flag = true;
 std::tuple<double, double, double, double> disp_gaze;
+cv::Mat stereo_camera_l_frame;
+cv::Mat stereo_camera_r_frame;
 
 
 
@@ -46,10 +49,20 @@ double get_passed_time(void){
     return msec;
 }
 
+void cammount_serial(void){
+    Cammount cammount("cammount", 4000);
+    if(cammount.check_connection()){
+        std::cout << "check_connection() -> true" << std::endl;
+        cammount.connection();
+        std::cout << "connected" << std::endl;
+        cammount.send_command();
+    };
+}
+
 // ステレオカメラの画像を取得するスレッド (OpenCV)
-//void cammount_camera(void){
-//    stereo_camera.capture();
-//}
+void stereo_camera_thread_func(Camera* stereo_camera){
+    stereo_camera->capture();
+}
 
 // foveのカメラから目の画像を取得するスレッド (OpenCV)
 void fove_camera(Camera* eye_camera){
@@ -83,27 +96,40 @@ std::tuple<double, double, double, double>get_disp_gaze(void){
     return disp_gaze;
 }
 
+cv::Mat get_stereo_camera_frame(int i){
+    if(i==0) return stereo_camera_l_frame;
+    else return stereo_camera_r_frame;
+}
+
 int main(int argc, char *argv[]){
     mode = std::stoi(argv[1]);
     std::cout << mode << std::endl;
 
     Camera eye_camera(Fove);
+    //Camera stereo_camera(PayCam);
+    
+
     start = std::chrono::system_clock::now();
     std::thread fove_camera_thread(fove_camera, &eye_camera);
-    //std::thread cammount_camera_thread(cammount_camera);
     std::thread fove_display_thread(fove_display, argc, argv);
+    //std::thread stereo_camera_thread(stereo_camera_thread_func, &stereo_camera);
+    std::thread cammount_thread(cammount_serial);
     std::thread time_thread(record_passed_time);
     
     //cammount_camera_thread.detach();
     fove_camera_thread.detach();
     fove_display_thread.detach();
+    //stereo_camera_thread.detach();
     time_thread.detach();
+    cammount_thread.detach();
     
     EyeInfoGetterV2 eye_info_getter;
 
     FILE* time_log;
     FILE* pupil_log;
     FILE* gaze_log;
+
+    
     if(mode == 0){
         //time_log = fopen("/share/home/hara/Data/fove/tmp/time0.txt", "w");
         //pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil0.txt", "w");
@@ -144,10 +170,14 @@ int main(int argc, char *argv[]){
             //cv::imshow("Fove", pupil_frame);
             i++;
         }
-        //if(stereo_camera.check_device_opened()){
-        //    cv::Mat s_frame = stereo_camera.get_frame();
-        //    cv::imshow("雲台", s_frame);
-        //}
+        /*if(stereo_camera.check_device_opened()){
+            cv::Mat stereo_camera_frame = stereo_camera.get_frame();
+            cv::Rect left(0, 0, 1280, 960);
+		    cv::Rect right(1280, 0, 1280, 960);
+		    stereo_camera_l_frame = cv::Mat(stereo_camera_frame, left);
+		    stereo_camera_r_frame = cv::Mat(stereo_camera_frame, right);
+            //std::cout << stereo_camera_frame.size().height << " " << stereo_camera_frame.size().width << std::endl;
+        }*/
         if(mode == 0){
             if(get_passed_time() > 125){
                 std::cout << "finish" << std::endl;
@@ -156,7 +186,7 @@ int main(int argc, char *argv[]){
                 break;
             }
         }
-        
     }
+    
     return 0;
 }
