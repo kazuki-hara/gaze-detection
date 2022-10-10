@@ -18,7 +18,7 @@ void pupil_output(std::string image_dir, std::string file_path){
 
     int image_num = count_files_num(image_dir);
 
-    for(int i = 0; i<image_num; i++){
+    for(int i = 1; i<image_num; i++){
         std::cout << i << std::endl;
         cv::Mat input_image = cv::imread(image_dir + std::to_string(i) + ".png");
         std::tuple<double, double, double, double> pupil_center = eye_info_getter.detect_pupil_center_v2(input_image);
@@ -27,9 +27,12 @@ void pupil_output(std::string image_dir, std::string file_path){
         double rx = std::get<2>(pupil_center);
         double ry = std::get<3>(pupil_center);
         fprintf(pupil_output_file, "%f %f %f %f %d\n", lx, ly, rx, ry, i);
-        
-        int key = cv::waitKey(1);
+        //cv::Mat dist = eye_info_getter.get_dist_image();
+        //cv::imwrite("ellipse/" + std::to_string(i) + ".png", dist);
+        //int key = cv::waitKey(1);
+        //cv::Mat left_edge_image = draw_pupil_edge()
     }
+    
     fclose(pupil_output_file);
 }
 

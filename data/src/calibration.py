@@ -29,8 +29,8 @@ class Calibration:
         # 注視中のデータを抽出
         #self.gaze_begin_time = [3.0, 11.0, 18.0, 25.0, 32.0, INF]
         self.calib_point_num = 25
-        self.gaze_begin_time = [i *5.0 + 0.5 for i in range(self.calib_point_num)] + [INF]
-        self.gaze_continuation_time = 4.0
+        self.gaze_begin_time = [i *5.0 + 1.0 for i in range(self.calib_point_num)] + [INF]
+        self.gaze_continuation_time = 3.0
         self.extracted_gaze_data = []
 
         # ハズレ値を除外した注視データ
@@ -79,10 +79,6 @@ class Calibration:
     def _remove_outliers(self, data_list):
         res = []
         mean = np.mean(data_list)
-        if np.isnan(mean):
-            for data in data_list:
-                print(data)
-            exit()
         standard_deviation = np.std(data_list)
         for data in data_list:
             if mean - standard_deviation * self.sigma_n <= data  and data <= mean + standard_deviation * self.sigma_n:
@@ -149,6 +145,17 @@ class Calibration:
         rx_disp = sum([param["rx"][i] * r_exp[i] for i in range(len(param["rx"]))])
         ry_disp = sum([param["ry"][i] * r_exp[i] for i in range(len(param["ry"]))])
 
+        x_disp = np.array([-200, -100, 0, 100, 200]*5)
+        y_disp = np.array([200]*5 + [100]*5 + [0]*5 + [-100]*5 + [-200]*5)
+        error = list(map(abs, lx_disp - x_disp))
+        print("lx: ", max(error, key=abs), min(error, key=abs), np.mean(error))
+        error = list(map(abs, ly_disp - y_disp))
+        print("ly: ", max(error, key=abs), min(error, key=abs), np.mean(error))
+        error = list(map(abs, rx_disp - x_disp))
+        print("rx: ", max(error, key=abs), min(error, key=abs), np.mean(error))
+        error = list(map(abs, ry_disp - y_disp))
+        print("ry: ", max(error, key=abs), min(error, key=abs), np.mean(error))
+
         # データ変形
         lx_disp = np.reshape(lx_disp, (5, 5))
         ly_disp = np.reshape(ly_disp, (5, 5))
@@ -164,13 +171,21 @@ class Calibration:
             x, y = np.meshgrid(np.linspace(-200, 200, 5), np.linspace(-200, 200, 5))
             ax11=fig.add_subplot(111,projection='3d')
             if name == "lx":
-                ax11.plot_wireframe(LX, LY, lx_disp-x_disp)
+                error = lx_disp - x_disp
+                ax11.plot_wireframe(LX, LY, error)
+                #print("lx: ", max(error, key=abs), min(error, key=abs), np.mean(error, key=abs))
             elif name == "ly":
-                ax11.plot_wireframe(LX, LY, ly_disp-y_disp)
+                error = ly_disp - y_disp
+                ax11.plot_wireframe(LX, LY, error)
+                #print("ly: ", max(error, key=abs), min(error, key=abs), np.mean(error, key=abs))
             elif name == "rx":
+                error = rx_disp - x_disp
                 ax11.plot_wireframe(RX, RY, rx_disp-x_disp)
+                #print("rx: ", max(error, key=abs), min(error, key=abs), np.mean(error, key=abs))
             else:
+                error = ry_disp - y_disp
                 ax11.plot_wireframe(RX, RY, ry_disp-y_disp)
+                #print("ry: ", max(error, key=abs), min(error, key=abs), np.mean(error, key=abs))
             ax11.set_xlabel("$x_{pupil} [px]$")
             ax11.set_ylabel("$y_{pupil} [px]$")
             if name == "lx":

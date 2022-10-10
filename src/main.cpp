@@ -25,6 +25,7 @@
 
 #define Fove "FOVE Eyes: FOVE Eyes"
 #define PayCam "PayCam: PayCam"
+#define OBSBOT "Logitech StreamCam"
 
 std::chrono::system_clock::time_point start, now;
 double msec;
@@ -35,7 +36,7 @@ std::tuple<double, double, double, double> disp_gaze;
 cv::Mat stereo_camera_l_frame;
 cv::Mat stereo_camera_r_frame;
 
-
+cv::Mat obs_camera_frame;
 
 //Camera stereo_camera(PayCam);
 Display display(DISP_HEIGHT, DISP_WIDTH);
@@ -69,6 +70,11 @@ void fove_camera(Camera* eye_camera){
     eye_camera->capture();
 }
 
+
+void obs_camera_func(Camera* obs_camera){
+    obs_camera->capture();
+}
+
 // foveのディスプレイに色々映すスレッド (OpenGL) 現状はキャリブレーション用の点のみ
 void fove_display(int argc, char* argv[]){
     display.show_graphic(argc, argv);
@@ -97,8 +103,14 @@ std::tuple<double, double, double, double>get_disp_gaze(void){
 }
 
 cv::Mat get_stereo_camera_frame(int i){
-    if(i==0) return stereo_camera_l_frame;
+    if(i==0){
+        return stereo_camera_l_frame;
+    }
     else return stereo_camera_r_frame;
+}
+
+cv::Mat get_obs_camera_frame(void){
+    return obs_camera_frame;
 }
 
 int main(int argc, char *argv[]){
@@ -113,6 +125,7 @@ int main(int argc, char *argv[]){
     std::thread fove_camera_thread(fove_camera, &eye_camera);
     std::thread fove_display_thread(fove_display, argc, argv);
     //std::thread stereo_camera_thread(stereo_camera_thread_func, &stereo_camera);
+    //std::thread obs_camera_thread(obs_camera_func, &obs_camera);
     std::thread cammount_thread(cammount_serial);
     std::thread time_thread(record_passed_time);
     
@@ -120,6 +133,7 @@ int main(int argc, char *argv[]){
     fove_camera_thread.detach();
     fove_display_thread.detach();
     //stereo_camera_thread.detach();
+    //obs_camera_thread.detach();
     time_thread.detach();
     cammount_thread.detach();
     
@@ -144,10 +158,17 @@ int main(int argc, char *argv[]){
     std::string image_dir = "/share/home/hara/Data/fove/pupil/saito/300/image/";
 
     int i = 0;
+    std::chrono::system_clock::time_point frame_1, frame_101;
     
     Calibration calib("/share/home/hara/workspace/fove/config/calibration/parameter.txt");
 
     while(true){
+        if(i == 1) frame_1 = std::chrono::system_clock::now();
+        if(i == 101){
+            frame_101 = std::chrono::system_clock::now();
+            double main_fps = (double)std::chrono::duration_cast<std::chrono::milliseconds>(frame_101 - frame_1).count() / 1000;
+            std::cout << "main fps: " << main_fps << std::endl;
+        }
         if(eye_camera.check_device_opened()){
             cv::Mat frame = eye_camera.get_frame();
             fprintf(time_log, "%f\n", get_passed_time());
@@ -168,7 +189,6 @@ int main(int argc, char *argv[]){
 
             //cv::Mat pupil_frame = eye_info_getter.draw_pupil_center(frame, pupil_pos);
             //cv::imshow("Fove", pupil_frame);
-            i++;
         }
         /*if(stereo_camera.check_device_opened()){
             cv::Mat stereo_camera_frame = stereo_camera.get_frame();

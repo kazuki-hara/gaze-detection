@@ -18,6 +18,7 @@ Camera::Camera(std::string dev_name){
     struct stat l_st;
     struct v4l2_capability l_v4l2cap;
     char l_dev_name[1024];
+    std::cout << l_dev_name << std::endl;
     int m_fd;
     for(int i=0; i<63; ++i){
         sprintf(l_dev_name, "/dev/video%d", i);
@@ -60,10 +61,22 @@ void Camera::capture(void){
     }
 }
 
+cv::Mat Camera::capture_one_frame(void){
+    cv::VideoCapture cap(dev_id);
+    cv::Mat one_frame;
+    cap.read(one_frame);
+    cap.release();
+    return one_frame;
+}
+
 bool Camera::check_device_opened(void){
     return dev_open;
 }
 
 cv::Mat Camera::get_frame(void){
     return frame;
+}
+
+int Camera::get_dev_id(void){
+    return dev_id;
 }

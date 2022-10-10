@@ -153,7 +153,7 @@ cv::Mat draw_pupil_edge(cv::Mat eye_image, int x, int y){
     cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     remove_outside_area(preprocessed_image);
     cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
-    cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, 128);
+    cv::threshold(preprocessed_image, preprocessed_image, 100, 255, cv::THRESH_BINARY);
 
     if(preprocessed_image.at<uchar>(y, x) == 0){
         int top_x = x;
@@ -347,7 +347,7 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity_v2(cv::Mat eye
     cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     remove_outside_area(preprocessed_image);
     cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
-    cv::threshold(preprocessed_image, preprocessed_image, 200, 255, 0);
+    cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, 0);
 
     if(preprocessed_image.at<uchar>(hough_circle_center_y, hough_circle_center_x) < 255){
         int top_x = hough_circle_center_x;
@@ -388,8 +388,10 @@ std::tuple<bool, cv::RotatedRect> EyeInfoGetterV2::pupil_center_ellipse(cv::Mat 
     cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     remove_outside_area(preprocessed_image);
     cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
-    cv::threshold(preprocessed_image, preprocessed_image, 200, 255, cv::THRESH_BINARY);
+    //cv::imwrite("blur.png", preprocessed_image);
+    cv::threshold(preprocessed_image, preprocessed_image, 100, 255, cv::THRESH_BINARY);
     //cv::imshow("preprocessed", preprocessed_image);
+    //cv::imwrite("6.png", preprocessed_image);
 
     cv::RotatedRect box;
     if(preprocessed_image.at<uchar>(hough_circle_center_y, hough_circle_center_x) < 255){
@@ -441,12 +443,15 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center(
 
     // 左目の瞳孔中心計算
     double lx = -1, ly = -1;
+    cv::Mat left_ellipse_image = left_image.clone();
     if(left_pupil_circle_index != -1){
         std::tuple<double, double> left_pupil_center = cal_center_of_gravity_v2(left_image, left_circles[left_pupil_circle_index]);
         lx = std::get<0>(left_pupil_center);
         ly = std::get<1>(left_pupil_center);
-        if(lx == -1 || ly == -1) std::cout << "left circle is not pupil" << std::endl;
-    }else std::cout << "left circle is not found" << std::endl;
+        //if(lx == -1 || ly == -1) std::cout << "left circle is not pupil" << std::endl;
+        cv::Mat left_edge_image = draw_pupil_edge(left_image, lx, ly);
+        cv::imwrite("left_edge.png", left_edge_image);
+    }//else std::cout << "left circle is not found" << std::endl;
 
     // 右目の瞳孔中心計算
     double rx = -1, ry = -1;
@@ -454,10 +459,10 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center(
         std::tuple<double, double> right_pupil_center = cal_center_of_gravity_v2(right_image, right_circles[right_pupil_circle_index]);
         rx = std::get<0>(right_pupil_center);
         ry = std::get<1>(right_pupil_center);
-        if(lx == -1 || ly == -1) std::cout << "right circle is not pupil" << std::endl;
+        //if(lx == -1 || ly == -1) std::cout << "right circle is not pupil" << std::endl;
         cv::Mat edge_image = draw_pupil_edge(right_image, rx, ry);
-        imshow("edge", edge_image);
-    }else std::cout << " right circle is not found" << std::endl;
+        cv::imwrite("right_edge.png", edge_image);
+    }//else std::cout << " right circle is not found" << std::endl;
 
     return std::make_tuple(lx, ly, rx, ry);
 }
@@ -468,14 +473,20 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
     std::tuple<cv::Mat, cv::Mat> converted_images = convert_image(original_image);
     cv::Mat left_image = std::get<0>(converted_images);
     cv::Mat right_image = std::get<1>(converted_images);
+    //cv::imwrite("1.png", right_image);
     cv::Mat left_image_copy = left_image.clone();
     cv::Mat right_image_copy = right_image.clone();
     preprocess(left_image_copy);
     preprocess(right_image_copy);
+    //cv::imwrite("2.png", right_image_copy);
     std::vector<cv::Vec3f> left_circles = detect_pupil_circle(left_image_copy);
     std::vector<cv::Vec3f> right_circles = detect_pupil_circle(right_image_copy);
 
+    //cv::Mat circles_image = draw_hough_circles(right_image, right_circles, left_circles);
+    //cv::imwrite("3.png", circles_image);
+
     int index = select_pupil_circle(left_image, left_circles);
+    
     double lx = -1, ly = -1, rx = -1, ry = -1;
     l_x = -1, l_y = -1, r_x = -1, r_y = -1;
     if(index != -1){
@@ -488,8 +499,9 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
             l_y = box.center.y;
             lx = box.center.x;
             ly = box.center.y;
-            cv::ellipse(left_image, left_box, cv::Scalar(0, 128, 0), 1, CV_AA);
-            cv::imshow("left", left_image);
+            cv::ellipse(left_image, left_box, cv::Scalar(0, 0, 255), 1, CV_AA);
+            cv::imwrite("left_image.png", left_image);
+            //cv::imshow("left", left_image);
         }else{
             std::cout << "circle is not pupil" << std::endl;
         }
@@ -497,6 +509,7 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
         std::cout << "circle not found" << std::endl;
     }
     index = select_pupil_circle(right_image, right_circles);
+
     if(index != -1){
         std::tuple<bool, cv::RotatedRect> pupil_info = pupil_center_ellipse(right_image, right_circles[index]);
         bool success = std::get<0>(pupil_info);
@@ -507,14 +520,14 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
             r_y = box.center.y;
             rx = box.center.x;
             ry = box.center.y;
-            cv::ellipse(right_image, right_box, cv::Scalar(0, 128, 0), 1, CV_AA);
-            cv::imshow("right", right_image);
+            //cv::imshow("right", right_image);
         }else{
             std::cout << "circle is not pupil" << std::endl;
         }
     }else{
         std::cout << "circle not found" << std::endl;
     }
+    //dist = cv::converted_images(left_image, right_image);
     return std::make_tuple(lx, ly, rx, ry);
 }
 
@@ -533,8 +546,7 @@ cv::Mat EyeInfoGetterV2::draw_pupil_center(cv::Mat original_image, std::tuple<do
     return dist;
 };
 
-void EyeInfoGetterV2::get_pupil_info(void){
+std::tuple<cv::RotatedRect, cv::RotatedRect> EyeInfoGetterV2::get_pupil_info(void){
     printf("%lf %lf %lf %lf\n", l_x ,l_y, r_x, r_y);
+    return std::make_tuple(left_box, right_box);
 }
-
-

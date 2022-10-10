@@ -16,4 +16,5 @@ private:
     int port;
     struct hostent* dst;
     int s;
+    int pp, ps, tp, ts;
 };

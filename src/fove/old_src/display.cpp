@@ -120,7 +120,6 @@ void put_xy_image_cv(int i){
     if(i == 1)
     {
         gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, cammount_camera_image.size().width, cammount_camera_image.size().height, GL_RGB, GL_UNSIGNED_BYTE, cammount_camera_image.data);
-        cv::imwrite("test.png", cammount_camera_image);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glColor3d(0.0, 0.0, 0.0);

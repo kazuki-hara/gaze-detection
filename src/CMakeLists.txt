@@ -14,6 +14,8 @@ set(SOURCES
     #./gaze/gaze_main.cpp
     ./utils/utils.cpp
     ./calibration/calibration.cpp
+    ./cammount/cammount.cpp
+    ./fove/opengl.cpp
 )
 
 # ここに.hファイル
@@ -24,6 +26,8 @@ set(HEADERS
     ./main.h
     ./utils/utils.h
     ./calibration/calibration.h
+    ./cammount/cammount.h
+    ./fove/opengl.h
 )
 
 # Mainという実行ファイルを生成

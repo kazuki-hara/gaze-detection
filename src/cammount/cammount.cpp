@@ -13,9 +13,23 @@
 
 #define BUFFER_SIZE 512
 
+#define L_SPEED 15
+
+#define PAN_POSITION_MAX 12401
+#define PAN_POSITION_MIN -12402
+#define TILTE_POSITION_MAX 2367
+#define TILTE_POSITION_MIN -3630
+
+#define STEPS_PER_SECOND 46.2857
+
+#define CAMERA_VIEW_ANGLE 78
+#define FOVE_VEIW_ANGLE 95
+
 Cammount::Cammount(std::string input_hostname, int input_port){
     hostname = input_hostname;
     port = input_port;
+    pp = 0;
+    tp = 0;
 }
 
 Cammount::~Cammount(void){}
@@ -52,9 +66,8 @@ void Cammount::connection(void){
 }
 
 std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry){
-    int ps=1000, pp=2500, ts=500, tp=500;
-
     // lx,ly,rx,ry -> pp,ps,tp,tsをここに実装
+    
 
     std::string ps_str = std::to_string(ps);
     std::string pp_str = std::to_string(pp);
@@ -81,10 +94,10 @@ int Cammount::send_command(void){
         //char rcv2_buffer[BUFFER_SIZE];
 
         std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
-        std::cout << buffer_str << std::endl;
+        //std::cout << buffer_str << std::endl;
         const char* buffer = buffer_str.c_str();
         //std::cout << buffer << std::endl;
-        std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
+        //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
         if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
 		    fprintf(stderr, "Can't sendto from the socket.\n");
             //close(s);

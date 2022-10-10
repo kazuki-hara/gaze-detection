@@ -3,7 +3,7 @@
 #include <tuple>
 #include <vector>
 
-#define BINARY_THRES 40
+#define BINARY_THRES 30
 
 #define FIRST_GAUSS_K_SIZE 11
 #define SECOND_GAUSS_K_SIZE 3
@@ -47,7 +47,7 @@ public:
     std::tuple<bool, cv::RotatedRect> pupil_center_ellipse(cv::Mat, cv::Vec3f);
 
     cv::Mat draw_pupil_center(cv::Mat, std::tuple<double, double, double, double>);
-    void get_pupil_info(void);
+    std::tuple<cv::RotatedRect, cv::RotatedRect> get_pupil_info(void);
 
 private:
     double l_x, l_y, r_x, r_y;

@@ -162,11 +162,15 @@ def make_num_xy_fig(data, side):
 
 
 def make_variance_xt_fig():
+    
     calib = Calibration()
     calib.read_pupil_data("/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt")
     calib.read_time_data("/share/home/hara/Data/fove/pupil/hara/200/time0.txt")
     calib.extract_gaze_data()
     calib.remove_outliers()
+
+    calib.extracted_gaze_data = calib.extracted_gaze_data[:25]
+    
 
     x_disp = np.reshape(np.array([-200, -100, 0, 100, 200]*5), (5, 5)) # 表示した注視点のx座標(理論値)
     y_disp = np.reshape(np.array([200]*5 + [100]*5 + [0]*5 + [-100]*5 + [-200]*5), (5, 5)) # 表示した注視点のy座標(理論値)
@@ -184,6 +188,7 @@ def make_variance_xt_fig():
         ly_variance.append(np.std(_ly))
         rx_variance.append(np.std(_rx))
         ry_variance.append(np.std(_ry))
+
     
     lx_variance = np.reshape(lx_variance, (5,5))
     ly_variance = np.reshape(ly_variance, (5,5))
