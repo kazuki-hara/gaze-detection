@@ -44,7 +44,7 @@ cv::Mat remove_outside_area_v2(cv::Mat binarized_image){
     cv::Mat dist(binarized_image.rows, binarized_image.cols, CV_8UC1, cv::Scalar(255));
 
     std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(binarized_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+    cv::findContours(binarized_image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
     std::vector<std::vector<cv::Point>> contours_subset;
 
     for(unsigned int i =0; i< contours.size(); i++){
@@ -125,7 +125,7 @@ cv::Mat draw_pupil_edges(cv::Mat input_image, cv::Mat binarized_image, std::vect
                     else break;
                 }
                 std::vector<std::vector<cv::Point>> contours;
-                cv::findContours(binarized_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+                cv::findContours(binarized_image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
                 cv::Moments mu;
                 cv::Point2f mc;
                 for(unsigned int j =0; j < contours.size(); j++){
@@ -149,7 +149,7 @@ cv::Mat draw_pupil_edge(cv::Mat eye_image, int x, int y){
     cv::Mat dist =  eye_image.clone();
     cv::Mat preprocessed_image = eye_image.clone();
 
-    cv::cvtColor(preprocessed_image, preprocessed_image, CV_BGR2GRAY);
+    cv::cvtColor(preprocessed_image, preprocessed_image, cv::COLOR_BGR2GRAY);
     cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     remove_outside_area(preprocessed_image);
     cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
@@ -166,7 +166,7 @@ cv::Mat draw_pupil_edge(cv::Mat eye_image, int x, int y){
             else break;
         }
         std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(preprocessed_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        cv::findContours(preprocessed_image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
         cv::Moments mu;
         cv::Point2f mc;
         for(unsigned int j =0; j < contours.size(); j++){
@@ -198,7 +198,7 @@ std::tuple<cv::Mat, cv::Mat> EyeInfoGetterV2::convert_image(cv::Mat original_ima
 
 // グレースケール変換->二値化-> 外側除去 -> 平滑化->エッジ検出->平滑化
 void EyeInfoGetterV2::preprocess(cv::Mat& eye_image){
-    cv::cvtColor(eye_image, eye_image, CV_BGR2GRAY);
+    cv::cvtColor(eye_image, eye_image, cv::COLOR_BGR2GRAY);
     //cv::imwrite("1.png", eye_image);
     cv::threshold(eye_image, eye_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     //cv::imwrite("2.png", eye_image);
@@ -215,7 +215,7 @@ void EyeInfoGetterV2::preprocess(cv::Mat& eye_image){
 // 画像から円を検出
 std::vector<cv::Vec3f> EyeInfoGetterV2::detect_pupil_circle(cv::Mat eye_image){
     std::vector<cv::Vec3f> circles;
-    cv::HoughCircles(eye_image, circles, CV_HOUGH_GRADIENT, 1, 
+    cv::HoughCircles(eye_image, circles, cv::HOUGH_GRADIENT, 1, 
             HOUGH_MIN_CENTER_DIST, CANNY_THRES,
             HOUGH_VOTE, HOUGH_MIN_RADIUS, HOUGH_MAX_RADIUS);
     return circles;
@@ -232,11 +232,11 @@ int EyeInfoGetterV2::select_pupil_circle(cv::Mat input_image, std::vector<cv::Ve
                 matching_image.at<uchar>(y, x) = 255;
             }
         }
-        cv::circle(matching_image, cv::Point(matching_image_size/2, matching_image_size/2), 15, 0, -1, CV_AA);
+        cv::circle(matching_image, cv::Point(matching_image_size/2, matching_image_size/2), 15, 0, -1, cv::LINE_AA);
 
         cv::Mat eye_image = input_image.clone();
 
-        cv::cvtColor(eye_image, eye_image, CV_BGR2GRAY);
+        cv::cvtColor(eye_image, eye_image, cv::COLOR_BGR2GRAY);
         cv::threshold(eye_image, eye_image, BINARY_THRES, 255, cv::THRESH_BINARY);
         cv::GaussianBlur(eye_image, eye_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
         
@@ -247,7 +247,7 @@ int EyeInfoGetterV2::select_pupil_circle(cv::Mat input_image, std::vector<cv::Ve
             if(matching_image_size/2 <= x && x < eye_image.size().width - matching_image_size/2 && matching_image_size/2 <= y && y < eye_image.size().height - matching_image_size/2){
                 cv::Mat eye_image_around_circle = cv::Mat(eye_image, cv::Rect(x - matching_image_size/2, y - matching_image_size/2, 40, 40));
                 cv::Mat result_image;
-                cv::matchTemplate(eye_image_around_circle, matching_image, result_image, CV_TM_CCOEFF_NORMED);
+                cv::matchTemplate(eye_image_around_circle, matching_image, result_image, cv::TM_CCOEFF_NORMED);
                 double score_tmp = 0;
                 cv::Point max_pt;
                 cv::minMaxLoc(result_image, NULL, &score_tmp, NULL, &max_pt);
@@ -289,7 +289,7 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
                     else break;
                 }
                 std::vector<std::vector<cv::Point>> contours;
-                cv::findContours(binarized_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+                cv::findContours(binarized_image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
                 cv::Moments mu;
                 cv::Point2f mc;
                 for(unsigned int j =0; j < contours.size(); j++){
@@ -343,7 +343,7 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity_v2(cv::Mat eye
 
     cv::Mat preprocessed_image = eye_image.clone();
 
-    cv::cvtColor(preprocessed_image, preprocessed_image, CV_BGR2GRAY);
+    cv::cvtColor(preprocessed_image, preprocessed_image, cv::COLOR_BGR2GRAY);
     cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     remove_outside_area(preprocessed_image);
     cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
@@ -360,7 +360,7 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity_v2(cv::Mat eye
             else break;
         }
         std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(preprocessed_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        cv::findContours(preprocessed_image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
         cv::Moments mu;
         cv::Point2f mc;
         for(unsigned int j =0; j < contours.size(); j++){
@@ -384,7 +384,7 @@ std::tuple<bool, cv::RotatedRect> EyeInfoGetterV2::pupil_center_ellipse(cv::Mat 
 
     cv::Mat preprocessed_image = eye_image.clone();
 
-    cv::cvtColor(preprocessed_image, preprocessed_image, CV_BGR2GRAY);
+    cv::cvtColor(preprocessed_image, preprocessed_image, cv::COLOR_BGR2GRAY);
     cv::threshold(preprocessed_image, preprocessed_image, BINARY_THRES, 255, cv::THRESH_BINARY);
     remove_outside_area(preprocessed_image);
     cv::GaussianBlur(preprocessed_image, preprocessed_image, cv::Size(FIRST_GAUSS_K_SIZE, FIRST_GAUSS_K_SIZE), GAUSS_X_SIGMA, GAUSS_Y_SIGMA);
@@ -405,7 +405,7 @@ std::tuple<bool, cv::RotatedRect> EyeInfoGetterV2::pupil_center_ellipse(cv::Mat 
             else break;
         }
         std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(preprocessed_image, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        cv::findContours(preprocessed_image, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
         for(unsigned int j =0; j < contours.size(); j++){
             for(unsigned int k=0; k < contours[j].size(); k++){
                 if(contours[j][k].y == top_y-1 && contours[j][k].x == top_x){
@@ -499,7 +499,7 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
             l_y = box.center.y;
             lx = box.center.x;
             ly = box.center.y;
-            cv::ellipse(left_image, left_box, cv::Scalar(0, 0, 255), 1, CV_AA);
+            cv::ellipse(left_image, left_box, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
             cv::imwrite("left_image.png", left_image);
             //cv::imshow("left", left_image);
         }else{
@@ -539,8 +539,8 @@ cv::Mat EyeInfoGetterV2::draw_pupil_center(cv::Mat original_image, std::tuple<do
     double rx = std::get<2>(pupil_pos);
     double ry = std::get<3>(pupil_pos);
     if(lx != -1 && ly != -1 && rx != -1 && ry != -1){
-        cv::circle(dist, cv::Point(lx, ly), 10, cv::Scalar(0,255,0), -1, CV_AA);
-        cv::circle(dist, cv::Point(rx+320, ry), 10, cv::Scalar(0,255,0), -1, CV_AA);
+        cv::circle(dist, cv::Point(lx, ly), 10, cv::Scalar(0,255,0), -1, cv::LINE_AA);
+        cv::circle(dist, cv::Point(rx+320, ry), 10, cv::Scalar(0,255,0), -1, cv::LINE_AA);
     }
     
     return dist;

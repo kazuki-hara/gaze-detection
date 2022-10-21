@@ -44,6 +44,7 @@ Camera::Camera(std::string dev_name){
         std::cout << "Cannot open " << dev_name << std::endl;
         exit(EXIT_FAILURE);
     }
+    std::cout << "dev_id: " << dev_id << std::endl;
     dev_open = false;
 }
 

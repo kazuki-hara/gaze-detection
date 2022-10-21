@@ -23,7 +23,10 @@
 #define STEPS_PER_SECOND 46.2857
 
 #define CAMERA_VIEW_ANGLE 78
-#define FOVE_VEIW_ANGLE 95
+#define FOVE_VEIW_ANGLE 100
+
+double kp = 1.0; // 比例ゲイン
+double seconds_arc_per_position = 46.2857; // 1ステップあたりの角度
 
 Cammount::Cammount(std::string input_hostname, int input_port){
     hostname = input_hostname;
@@ -67,7 +70,19 @@ void Cammount::connection(void){
 
 std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry){
     // lx,ly,rx,ry -> pp,ps,tp,tsをここに実装
-    
+    double composition_x = (lx + rx) / 2;
+    double composition_y = (ly + ry) / 2;
+
+    double theta_x = std::atan(std::tan(50 * M_PI / 180) * composition_x / 1280);
+    double theta_y = std::atan(std::tan(50 * M_PI / 180) * composition_y / 1280);
+
+    if(theta_x >= 0) pp = PAN_POSITION_MAX;
+    else pp = PAN_POSITION_MIN;
+    if(theta_y >= 0) tp = TILTE_POSITION_MAX;
+    else tp = TILTE_POSITION_MIN;
+
+    ps = (int)(abs(theta_x) * kp / (seconds_arc_per_position / 3600));
+    ts = (int)(abs(theta_y) * kp / (seconds_arc_per_position / 3600));
 
     std::string ps_str = std::to_string(ps);
     std::string pp_str = std::to_string(pp);
@@ -91,10 +106,13 @@ int Cammount::send_command(void){
         double ly = std::get<1>(gaze_data);
         double rx = std::get<2>(gaze_data);
         double ry = std::get<3>(gaze_data);
+
+        
+ 
         //char rcv2_buffer[BUFFER_SIZE];
 
         std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
-        //std::cout << buffer_str << std::endl;
+        std::cout << buffer_str << std::endl;
         const char* buffer = buffer_str.c_str();
         //std::cout << buffer << std::endl;
         //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;

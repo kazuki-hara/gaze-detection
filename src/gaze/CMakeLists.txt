@@ -4,6 +4,7 @@ project(MyOpenCVProject)
 # Create Main project
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-Wall -g -I../../thirdparty/boostlibs")
+set(LDFLAGS += -lglut -lGL -lGLU -lGLEW)
 
 # ここに.cppファイル
 set(SOURCES
