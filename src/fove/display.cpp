@@ -22,21 +22,94 @@ double dx = EYE_DISP_X * 4.05 / 3.21, dy = EYE_DISP_Y * 4.05 / 3.21;
 
 cv::VideoCapture cammount_camera_cap;
 Camera cammount_camera(logitech);
+cv::Mat cammount_camera_image_tmp;
 cv::Mat cammount_camera_image;
+
+double passed_time;
+
+void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)
+{
+    glEnable(GL_TEXTURE_2D);
+    glBegin(GL_POLYGON);
+    glTexCoord2f(0.0, div);
+    glVertex2d(x - width / 2.0, y - height / 2.0);
+    glTexCoord2f(div, div);
+    glVertex2d(x + width / 2.0, y - height / 2.0);
+    glTexCoord2f(div, 0.0);
+    glVertex2d(x + width / 2.0, y + height / 2.0);
+    glTexCoord2f(0.0, 0.0);
+    glVertex2d(x - width / 2.0, y + height / 2.0);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
+void show_image(cv::Mat image){
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, image.size().width, image.size().height, GL_RGB, GL_UNSIGNED_BYTE, image.data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    put_2d_image_cv_ishikawa(0, 0, image.size().width, image.size().height, 1.0);
+}
+
+void display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1が右
+    //----OpenGL上の目と頭の位置設定(3Dのときのみ)-----
+    if(i==0) ex[i] = (ex[0]+ex[1])/2.0 - 3.0*cos(M_PI*ii/180.0);
+    else if(i==1) ex[i] = (ex[0]+ex[1])/2.0 + 3.0*cos(M_PI*ii/180.0);
+    cz = ez - 1000*cos(M_PI*ii/180.0);
+    cx[i] = ex[i] - 1000*sin(M_PI*ii/180.0);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(106.563963618037, 2560.0/1440.0/2.0, 1.0, 1000.0);
+    gluLookAt(ex[i], ey, ez, cx[i], cy, cz, 0.0, 1.0, 0.0);
+
+    glDisable(GL_LIGHTING);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // 3D描画
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    glColor4d(1.0, 1.0, 1.0,1.0);
+
+    // 2D描画
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-EYE_DISP_X, EYE_DISP_X, -EYE_DISP_Y, EYE_DISP_Y, -1.0, 1.0);
+
+    // 画像と図形の表示
+    //show_image(input_image);
+    //show_polygon();
+    passed_time = get_passed_time();
+    if(check_mode() == 0){} //calibration_v2();
+    else{
+        show_image(cammount_camera_image);
+        show_gaze_point(get_disp_gaze());
+    }
+}
+
 
 void my_display_func(void){
     if(cammount_camera_cap.isOpened()) cammount_camera_cap.read(cammount_camera_image);
     cv::cvtColor(cammount_camera_image, cammount_camera_image, cv::COLOR_BGR2RGB);
 
-
     glClear(GL_COLOR_BUFFER_BIT);
-    glDrawPixels(cammount_camera_image.cols, cammount_camera_image.rows, GL_RGB, GL_UNSIGNED_BYTE, cammount_camera_image.data); // 画像表示
-    glutPostRedisplay(); // これがないと次の描画するきっかけができないので
-    glFlush();
+    // 左目
+    glViewport(0, 0, DISP_WIDTH/2, DISP_HEIGHT);
+    display_for_one_eye(0);
+
+    // 右目
+    glViewport(DISP_WIDTH/2, 0, DISP_WIDTH/2, DISP_HEIGHT);
+    display_for_one_eye(1);
+
+    glutPostRedisplay();
+    glutSwapBuffers();
 }
 
+
 void init(void){
-    glClearColor(0.5, 0.5, 0.5, 0.0); // init
+    glClearColor(0.5, 0.5, 0.5, 1.0); // init
+    std::cout << "init!" << std::endl;
 }
 
 Display::Display(int h, int w):
@@ -49,19 +122,18 @@ Display::~Display(void){}
 void Display::show_graphic(int argc, char* argv[]){
 
     cammount_camera_cap.open(cammount_camera.get_dev_id());
-    cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-    cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+    cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
+    cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
     cammount_camera_cap.set(cv::CAP_PROP_FPS, 30);
 
     if(cammount_camera_cap.isOpened()) std::cout << "cap success!" << std::endl;
-    glutInit(&argc, argv);
-    glutInitWindowPosition(0, 0);
-    glutInitDisplayMode(GLUT_RGBA);
 
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+    glutInitWindowPosition(0, 0);
     glutCreateWindow("fove display");
     glutFullScreen();
-    glutDisplayFunc(my_display_func);
     init();
+    glutDisplayFunc(my_display_func);
     glutMainLoop();
-    my_display_func();
 }

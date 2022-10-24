@@ -147,8 +147,8 @@ int main(int argc, char *argv[]){
     if(mode == 0){
         //time_log = fopen("/share/home/hara/Data/fove/tmp/time0.txt", "w");
         //pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil0.txt", "w");
-        time_log = fopen("/share/home/hara/Data/fove/pupil/saito/300/time0.txt", "w");
-        pupil_log = fopen("/share/home/hara/Data/fove/pupil/saito/300/pupil0.txt", "w");
+        //time_log = fopen("/share/home/hara/Data/fove/pupil/saito/300/time0.txt", "w");
+        //pupil_log = fopen("/share/home/hara/Data/fove/pupil/saito/300/pupil0.txt", "w");
     }else{
         time_log = fopen("/share/home/hara/Data/fove/tmp/time1.txt", "w");
         pupil_log = fopen("/share/home/hara/Data/fove/tmp/pupil1.txt", "w");
