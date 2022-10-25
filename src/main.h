@@ -6,7 +6,7 @@
 #define LOG_RATE 10
 double get_passed_time(void);
 int check_mode(void);
-std::tuple<double, double, double, double>get_disp_gaze(void);
+std::tuple<double, double, double, double>get_gaze_pixel(void);
 bool check_detect_pupil_flag(void);
 cv::Mat get_stereo_camera_frame(int);
 cv::Mat get_obs_camera_frame(void);

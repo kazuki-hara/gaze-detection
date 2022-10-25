@@ -7,18 +7,14 @@
 #include "./../main.h"
 #include "./../camera/camera.h"
 #include "./opengl.h"
-//#include <GL/glut.h>
-//#include <GL/freeglut.h>
 
 #define logitech "Logitech StreamCam"
 #define PayCam "PayCam: PayCam"
 
-bool disp_on_Fove = true;
+#define Calib
+
 static double ex[2] = {-3.0, 3.0}, ey = 0.0, ez = 0.0, cx[2] = {-3.25, 3.25}, cy = 0.0, cz = 0.0;
 static double ii = 0.0;
-
-// ディスプレイまでの距離をピクセルの値に合わせた、ディスプレイが5.8インチ、ディスプレイまでの距離が4.05cm、解像度2560×1440から計算した
-double dx = EYE_DISP_X * 4.05 / 3.21, dy = EYE_DISP_Y * 4.05 / 3.21;
 
 cv::VideoCapture cammount_camera_cap;
 Camera cammount_camera(logitech);
@@ -26,6 +22,7 @@ cv::Mat cammount_camera_image_tmp;
 cv::Mat cammount_camera_image;
 
 double passed_time;
+std::tuple<double, double, double, double> gaze_pixel;
 
 void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)
 {
@@ -48,6 +45,49 @@ void show_image(cv::Mat image){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     put_2d_image_cv_ishikawa(0, 0, image.size().width, image.size().height, 1.0);
+}
+
+void show_polygon(int x, int y, double red, double green, double blue){
+    glBegin(GL_POLYGON);
+    glColor3d(red, green, blue);
+    glVertex2d(x-CALIB_SQURE/2, y-CALIB_SQURE/2);
+    glVertex2d(x-CALIB_SQURE/2, y+CALIB_SQURE/2);
+    glVertex2d(x+CALIB_SQURE/2, y+CALIB_SQURE/2);
+    glVertex2d(x+CALIB_SQURE/2, y-CALIB_SQURE/2);
+    glEnd();
+}
+
+void calibration_v2(void){
+    double range = 300.0;
+    int index = ((int)passed_time) / 5;
+    int x_index = index % 5;
+    int y_index = (int)(index / 5);
+    int x = -1* range + x_index * range / 2;
+    int y = range - y_index * range / 2;
+    show_polygon(x, y, 0.0, 1.0, 0.0);
+}
+
+void show_gaze_pixel(void){
+    double lx = std::get<0>(gaze_pixel);
+    double ly = std::get<1>(gaze_pixel);
+    double rx = std::get<2>(gaze_pixel);
+    double ry = std::get<3>(gaze_pixel);
+
+    glColor3d(1.0, 0.1, 0.1);
+    glBegin(GL_POLYGON);
+    glVertex2d(lx - CALIB_SQURE/2, ly - CALIB_SQURE/2);
+    glVertex2d(lx - CALIB_SQURE/2, ly + CALIB_SQURE/2);
+    glVertex2d(lx + CALIB_SQURE/2, ly + CALIB_SQURE/2);
+    glVertex2d(lx + CALIB_SQURE/2, ly - CALIB_SQURE/2);
+    glEnd();
+
+    glColor3d(0.1, 0.1, 1.0);
+    glBegin(GL_POLYGON);
+    glVertex2d(rx - CALIB_SQURE/2, ry - CALIB_SQURE/2);
+    glVertex2d(rx - CALIB_SQURE/2, ry + CALIB_SQURE/2);
+    glVertex2d(rx + CALIB_SQURE/2, ry + CALIB_SQURE/2);
+    glVertex2d(rx + CALIB_SQURE/2, ry - CALIB_SQURE/2);
+    glEnd();
 }
 
 void display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1が右
@@ -77,21 +117,22 @@ void display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1�
     glLoadIdentity();
     glOrtho(-EYE_DISP_X, EYE_DISP_X, -EYE_DISP_Y, EYE_DISP_Y, -1.0, 1.0);
 
-    // 画像と図形の表示
-    //show_image(input_image);
-    //show_polygon();
-    passed_time = get_passed_time();
-    if(check_mode() == 0){} //calibration_v2();
+
+    if(check_mode() == 0) calibration_v2();
     else{
         show_image(cammount_camera_image);
-        show_gaze_point(get_disp_gaze());
+        show_gaze_pixel();
     }
 }
 
-
 void my_display_func(void){
-    if(cammount_camera_cap.isOpened()) cammount_camera_cap.read(cammount_camera_image);
-    cv::cvtColor(cammount_camera_image, cammount_camera_image, cv::COLOR_BGR2RGB);
+    passed_time = get_passed_time();
+    
+    if(check_mode() == 1){
+        if(cammount_camera_cap.isOpened()) cammount_camera_cap.read(cammount_camera_image);
+        cv::cvtColor(cammount_camera_image, cammount_camera_image, cv::COLOR_BGR2RGB);
+        gaze_pixel = get_gaze_pixel();
+    }
 
     glClear(GL_COLOR_BUFFER_BIT);
     // 左目
@@ -120,13 +161,15 @@ Display::Display(int h, int w):
 Display::~Display(void){}
 
 void Display::show_graphic(int argc, char* argv[]){
+    if(check_mode() ==1){
+        cammount_camera_cap.open(cammount_camera.get_dev_id());
+        cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
+        cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
+        cammount_camera_cap.set(cv::CAP_PROP_FPS, 30);
 
-    cammount_camera_cap.open(cammount_camera.get_dev_id());
-    cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
-    cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
-    cammount_camera_cap.set(cv::CAP_PROP_FPS, 30);
+        if(cammount_camera_cap.isOpened()) std::cout << "cap success!" << std::endl;
+    }
 
-    if(cammount_camera_cap.isOpened()) std::cout << "cap success!" << std::endl;
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);

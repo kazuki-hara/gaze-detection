@@ -101,7 +101,7 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
 int Cammount::send_command(void){
     while(true)
     {
-	    std::tuple<double, double, double, double> gaze_data = get_disp_gaze();
+	    std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
         double lx = std::get<0>(gaze_data);
         double ly = std::get<1>(gaze_data);
         double rx = std::get<2>(gaze_data);
@@ -112,7 +112,7 @@ int Cammount::send_command(void){
         //char rcv2_buffer[BUFFER_SIZE];
 
         std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
-        std::cout << buffer_str << std::endl;
+        //std::cout << buffer_str << std::endl;
         const char* buffer = buffer_str.c_str();
         //std::cout << buffer << std::endl;
         //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
