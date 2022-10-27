@@ -58,7 +58,7 @@ void show_polygon(int x, int y, double red, double green, double blue){
 }
 
 void calibration_v2(void){
-    double range = 300.0;
+    double range = 200.0;
     int index = ((int)passed_time) / 5;
     int x_index = index % 5;
     int y_index = (int)(index / 5);
@@ -163,8 +163,8 @@ Display::~Display(void){}
 void Display::show_graphic(int argc, char* argv[]){
     if(check_mode() ==1){
         cammount_camera_cap.open(cammount_camera.get_dev_id());
-        cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
-        cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
+        cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
+        cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
         cammount_camera_cap.set(cv::CAP_PROP_FPS, 30);
 
         if(cammount_camera_cap.isOpened()) std::cout << "cap success!" << std::endl;

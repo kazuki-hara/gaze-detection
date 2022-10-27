@@ -185,7 +185,12 @@ cv::Mat draw_pupil_edge(cv::Mat eye_image, int x, int y){
 }
 
 
-EyeInfoGetterV2::EyeInfoGetterV2(void){}
+EyeInfoGetterV2::EyeInfoGetterV2(void){
+    l_x = 0;
+    l_y = 0;
+    r_x = 0;
+    r_y = 0;
+}
 EyeInfoGetterV2::~EyeInfoGetterV2(void){}
 
 // 左目と右目に分割
