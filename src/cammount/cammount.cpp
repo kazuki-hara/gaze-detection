@@ -73,16 +73,18 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
     double composition_x = (lx + rx) / 2;
     double composition_y = (ly + ry) / 2;
 
-    double theta_x = std::atan(std::tan(50 * M_PI / 180) * composition_x / 1280);
-    double theta_y = std::atan(std::tan(50 * M_PI / 180) * composition_y / 1280);
+    double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(composition_x) / 1280);
+    double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(composition_y) / 1280);
 
-    if(theta_x >= 0) pp = PAN_POSITION_MAX;
+    // 移動する方向を指定
+    if(composition_x >= 0) pp = PAN_POSITION_MAX;
     else pp = PAN_POSITION_MIN;
-    if(theta_y >= 0) tp = TILTE_POSITION_MAX;
+    if(composition_y >= 0) tp = TILTE_POSITION_MAX;
     else tp = TILTE_POSITION_MIN;
 
-    ps = (int)(abs(theta_x) * kp / (seconds_arc_per_position / 3600));
-    ts = (int)(abs(theta_y) * kp / (seconds_arc_per_position / 3600));
+    // 移動する速度を指定
+    ps = (int)(theta_x * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
+    ts = (int)(theta_y * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
 
     std::string ps_str = std::to_string(ps);
     std::string pp_str = std::to_string(pp);
@@ -101,26 +103,30 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
 int Cammount::send_command(void){
     while(true)
     {
-	    std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
-        double lx = std::get<0>(gaze_data);
-        double ly = std::get<1>(gaze_data);
-        double rx = std::get<2>(gaze_data);
-        double ry = std::get<3>(gaze_data);
+        if(check_detect_pupil_flag() == true){
+            std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
+            double lx = std::get<0>(gaze_data);
+            double ly = std::get<1>(gaze_data);
+            double rx = std::get<2>(gaze_data);
+            double ry = std::get<3>(gaze_data);
 
-        
- 
-        //char rcv2_buffer[BUFFER_SIZE];
+            
+    
+            //char rcv2_buffer[BUFFER_SIZE];
 
-        std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
-        //std::cout << buffer_str << std::endl;
-        const char* buffer = buffer_str.c_str();
-        //std::cout << buffer << std::endl;
-        //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
-        if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
-		    fprintf(stderr, "Can't sendto from the socket.\n");
+            std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
+            std::cout << lx << " " << ly << " " << rx << " " << ry << " " << std::endl;
+            std::cout << buffer_str << std::endl;
+            const char* buffer = buffer_str.c_str();
+            //std::cout << buffer << std::endl;
+            //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
+            if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
+                fprintf(stderr, "Can't sendto from the socket.\n");
             //close(s);
 		    //return 1;
-	    }
+	        }
+        }
+	    
         usleep(0.5 *1000000);
     }
 
