@@ -49,6 +49,8 @@ public:
     cv::Mat draw_pupil_center(cv::Mat, std::tuple<double, double, double, double>);
     std::tuple<cv::RotatedRect, cv::RotatedRect> get_pupil_info(void);
 
+    bool check_detect_pupil(void);
+
 private:
     double l_x, l_y, r_x, r_y;
     cv::RotatedRect left_box, right_box;

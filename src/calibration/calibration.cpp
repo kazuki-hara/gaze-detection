@@ -37,6 +37,7 @@ Calibration::Calibration(std::string param_file_path){
     ly_pupil_center = parameter[4][1];
     rx_pupil_center = parameter[4][2];
     ry_pupil_center = parameter[4][3];
+    gaze_in_disp_flag = false;
 }
 
 Calibration::~Calibration(){
@@ -54,10 +55,18 @@ std::tuple<double,double,double,double> Calibration::calcuration_gaze_point(doub
     rx_disp = parameter[2][0] * pow(rx_distance, 3) + parameter[2][1] * pow(rx_distance, 2) * ry_distance + parameter[2][2] * rx_distance * pow(ry_distance, 2) + parameter[2][3] * pow(ry_distance, 3) + parameter[2][4] * pow(rx_distance, 2) + parameter[2][5] * rx_distance * ry_distance + parameter[2][6] * pow(ry_distance, 2) + parameter[2][7] * rx_distance + parameter[2][8] * ry_distance + parameter[2][9];
     ry_disp = parameter[3][0] * pow(rx_distance, 3) + parameter[3][1] * pow(rx_distance, 2) * ry_distance + parameter[3][2] * rx_distance * pow(ry_distance, 2) + parameter[3][3] * pow(ry_distance, 3) + parameter[3][4] * pow(rx_distance, 2) + parameter[3][5] * rx_distance * ry_distance + parameter[3][6] * pow(ry_distance, 2) + parameter[3][7] * rx_distance + parameter[3][8] * ry_distance + parameter[3][9];
     std::tuple<double, double, double, double> disp_gaze = std::make_tuple(lx_disp, ly_disp, rx_disp, ry_disp);
+
+    if(abs(lx_disp) <= DISP_X && abs(ly_disp) <= DISP_Y && abs(rx_disp) <= DISP_X && abs(ry_disp) <= DISP_Y) gaze_in_disp_flag = true;
+    else gaze_in_disp_flag = false;
+    
     return disp_gaze;
 }
 
 
 void Calibration::get_parameter(void){
     std::cout << lx_pupil_center << std::endl;
+}
+
+bool Calibration::check_gaze_in_disp_flag(void){
+    return gaze_in_disp_flag;
 }

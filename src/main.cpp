@@ -31,7 +31,8 @@ std::chrono::system_clock::time_point start, now;
 double msec;
 bool exit_flag = false;
 int mode;
-bool detect_pupil_flag = true;
+bool detect_pupil_flag = false;
+bool gaze_in_disp_flag = false;
 std::tuple<double, double, double, double> disp_gaze;
 cv::Mat stereo_camera_l_frame;
 cv::Mat stereo_camera_r_frame;
@@ -96,6 +97,10 @@ int check_mode(void){
 
 bool check_detect_pupil_flag(void){
     return detect_pupil_flag;
+}
+
+bool check_gaze_in_disp_flag(void){
+    return gaze_in_disp_flag;
 }
 
 std::tuple<double, double, double, double>get_gaze_pixel(void){
@@ -173,11 +178,11 @@ int main(int argc, char *argv[]){
             double ry = std::get<3>(pupil_pos);
             fprintf(pupil_log, "%f %f %f %f\n", lx, ly, rx, ry);
 
-            if(lx != -1 || ly != -1 || rx != -1 || ry != -1) detect_pupil_flag = true;
-            else detect_pupil_flag = false;
+            detect_pupil_flag = eye_info_getter.check_detect_pupil();
 
-            if(mode == 1){
+            if(mode == 1 && detect_pupil_flag == true){
                 disp_gaze = calib.calcuration_gaze_point(lx, ly, rx, ry);
+                gaze_in_disp_flag = calib.check_gaze_in_disp_flag();
             }
             i++;
         }

@@ -555,3 +555,8 @@ std::tuple<cv::RotatedRect, cv::RotatedRect> EyeInfoGetterV2::get_pupil_info(voi
     printf("%lf %lf %lf %lf\n", l_x ,l_y, r_x, r_y);
     return std::make_tuple(left_box, right_box);
 }
+
+bool EyeInfoGetterV2::check_detect_pupil(void){
+    if(l_x != -1 || l_y != -1 || r_x != -1 || r_y != -1) return true;
+    else return false;
+}

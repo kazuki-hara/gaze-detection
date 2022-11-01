@@ -8,6 +8,7 @@ double get_passed_time(void);
 int check_mode(void);
 std::tuple<double, double, double, double>get_gaze_pixel(void);
 bool check_detect_pupil_flag(void);
+bool check_gaze_in_disp_flag(void);
 cv::Mat get_stereo_camera_frame(int);
 cv::Mat get_obs_camera_frame(void);
 
