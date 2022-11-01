@@ -57,6 +57,18 @@ void show_polygon(int x, int y, double red, double green, double blue){
     glEnd();
 }
 
+void show_xy_axis(void){
+    glColor3d(0.0, 0.0, 0.0);
+    glBegin(GL_LINES);
+    glVertex2d(0, 720);
+    glVertex2d(0, -720);
+    glEnd();
+    glBegin(GL_LINES);
+    glVertex2d(-640, 0);
+    glVertex2d(640, 0);
+    glEnd();
+}
+
 void calibration_v2(void){
     double range = 200.0;
     int index = ((int)passed_time) / 5;
@@ -123,6 +135,7 @@ void display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1�
         show_image(cammount_camera_image);
         show_gaze_pixel();
     }
+    show_xy_axis();
 }
 
 void my_display_func(void){
