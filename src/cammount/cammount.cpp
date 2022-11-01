@@ -70,16 +70,16 @@ void Cammount::connection(void){
 
 std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry){
     // lx,ly,rx,ry -> pp,ps,tp,tsをここに実装
-    double composition_x = (lx + rx) / 2;
-    double composition_y = (ly + ry) / 2;
+    double mean_x = (lx + rx) / 2;
+    double mean_y = (ly + ry) / 2;
 
-    double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(composition_x) / 1280);
-    double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(composition_y) / 1280);
+    double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(mean_x) / 1280);
+    double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(mean_y) / 1280);
 
     // 移動する方向を指定
-    if(composition_x >= 0) pp = PAN_POSITION_MAX;
-    else pp = PAN_POSITION_MIN;
-    if(composition_y >= 0) tp = TILTE_POSITION_MAX;
+    if(mean_x >= 0) pp = PAN_POSITION_MIN;
+    else pp = PAN_POSITION_MAX;
+    if(mean_y >= 0) tp = TILTE_POSITION_MAX;
     else tp = TILTE_POSITION_MIN;
 
     // 移動する速度を指定
@@ -91,7 +91,7 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
     std::string ts_str = std::to_string(ts);
     std::string tp_str = std::to_string(tp);
 
-    char buffer[] = {'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
+    char buffer[] = {'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
     for (unsigned int i = 0; i < ps_str.size(); i++) buffer[i + 2] = ps_str[i];
     for (unsigned int i = 0; i < pp_str.size(); i++) buffer[i + 9] = pp_str[i];
     for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 17] = ts_str[i];
@@ -103,12 +103,14 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
 int Cammount::send_command(void){
     while(true)
     {
-        if(check_detect_pupil_flag() == true){
+        if(check_detect_pupil_flag() == true && check_gaze_in_disp_flag() == true){
             std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
             double lx = std::get<0>(gaze_data);
             double ly = std::get<1>(gaze_data);
             double rx = std::get<2>(gaze_data);
             double ry = std::get<3>(gaze_data);
+
+            
 
             
     
