@@ -133,7 +133,7 @@ void display_for_one_eye(int i){ // 片方のディスプレイ（i=0が左,i=1�
     if(check_mode() == 0) calibration_v2();
     else{
         show_image(cammount_camera_image);
-        show_gaze_pixel();
+        if(check_detect_pupil_flag()) show_gaze_pixel();
     }
     show_xy_axis();
 }
