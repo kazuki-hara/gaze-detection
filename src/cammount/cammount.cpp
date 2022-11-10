@@ -94,8 +94,8 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
     char buffer[] = {'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
     for (unsigned int i = 0; i < ps_str.size(); i++) buffer[i + 2] = ps_str[i];
     for (unsigned int i = 0; i < pp_str.size(); i++) buffer[i + 9] = pp_str[i];
-    for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 17] = ts_str[i];
-    for (unsigned int i = 0; i < tp_str.size(); i++) buffer[i + 24] = tp_str[i];
+    for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 18] = ts_str[i];
+    for (unsigned int i = 0; i < tp_str.size(); i++) buffer[i + 25] = tp_str[i];
 
     return buffer;
 }
