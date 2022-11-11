@@ -12,6 +12,7 @@
 #include <memory>
 #include <linux/videodev2.h>
 #include "camera.h"
+#include "./../main.h"
 
 
 Camera::Camera(std::string dev_name){
@@ -59,7 +60,9 @@ void Camera::capture(void){
     {
         frame = _frame;
         dev_open = true;
+        if(check_exit_flag()) break;
     }
+    return;
 }
 
 cv::Mat Camera::capture_one_frame(void){

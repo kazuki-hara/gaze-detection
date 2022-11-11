@@ -119,8 +119,8 @@ int Cammount::send_command(void){
 
         
         std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
-        std::cout << lx << " " << ly << " " << rx << " " << ry << " " << std::endl;
-        std::cout << buffer_str << std::endl;
+        //std::cout << lx << " " << ly << " " << rx << " " << ry << " " << std::endl;
+        //std::cout << buffer_str << std::endl;
         const char* buffer = buffer_str.c_str();
         //std::cout << buffer << std::endl;
         //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
@@ -131,6 +131,10 @@ int Cammount::send_command(void){
         }
 	    
         usleep(0.5 *1000000);
+        if(check_exit_flag()){
+            close(s);
+            break;
+        }
     }
 
     //close(s);
