@@ -59,26 +59,31 @@ void cammount_serial(void){
             cammount.send_command();
         };
     }
+    return;
 }
 
 // ステレオカメラの画像を取得するスレッド (OpenCV)
 void stereo_camera_thread_func(Camera* stereo_camera){
     stereo_camera->capture();
+    return;
 }
 
 // foveのカメラから目の画像を取得するスレッド (OpenCV)
 void fove_camera(Camera* eye_camera){
     eye_camera->capture();
+    return;
 }
 
 
 void obs_camera_func(Camera* obs_camera){
     obs_camera->capture();
+    return;
 }
 
 // foveのディスプレイに色々映すスレッド (OpenGL) 現状はキャリブレーション用の点のみ
 void fove_display(int argc, char* argv[]){
     display.show_graphic(argc, argv);
+    return;
 }
 
 
@@ -88,11 +93,17 @@ void record_passed_time(void){
         now = std::chrono::system_clock::now();
         auto passed = now-start;
         msec = (double)std::chrono::duration_cast<std::chrono::milliseconds>(passed).count() / 1000;
+        if(exit_flag) break;
     }
+    return;
 }
 
 int check_mode(void){
     return mode;
+}
+
+bool check_exit_flag(void){
+    return exit_flag;
 }
 
 bool check_detect_pupil_flag(void){
@@ -193,6 +204,16 @@ int main(int argc, char *argv[]){
                 fclose(time_log);
                 fclose(pupil_log);
                 break;
+            }
+        }
+        if(mode == 1){
+            if (kbhit()){
+                if(getchar() == 's'){
+                    fclose(time_log);
+                    fclose(gaze_log);
+                    fclose(pupil_log);
+                    exit_flag = true;
+                }
             }
         }
     }
