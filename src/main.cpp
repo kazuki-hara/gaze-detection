@@ -134,20 +134,14 @@ int main(int argc, char *argv[]){
     std::cout << mode << std::endl;
 
     Camera eye_camera(Fove);
-    //Camera stereo_camera(PayCam);
     
     std::thread fove_camera_thread(fove_camera, &eye_camera);
     std::thread fove_display_thread(fove_display, argc, argv);
-    //std::thread stereo_camera_thread(stereo_camera_thread_func, &stereo_camera);
-    //std::thread obs_camera_thread(obs_camera_func, &obs_camera);
     std::thread cammount_thread(cammount_serial);
     std::thread time_thread(record_passed_time);
     
-    //cammount_camera_thread.detach();
     fove_camera_thread.detach();
     fove_display_thread.detach();
-    //stereo_camera_thread.detach();
-    //obs_camera_thread.detach();
     time_thread.detach();
     if(mode == 1) cammount_thread.detach();
     
@@ -182,7 +176,7 @@ int main(int argc, char *argv[]){
             cv::Mat frame = eye_camera.get_frame();
             fprintf(time_log, "%f\n", get_passed_time());
             //cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
-            std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
+            std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center_v2(frame);
             double lx = std::get<0>(pupil_pos);
             double ly = std::get<1>(pupil_pos);
             double rx = std::get<2>(pupil_pos);
@@ -208,15 +202,16 @@ int main(int argc, char *argv[]){
         }
         if(mode == 1){
             if (kbhit()){
-                if(getchar() == 's'){
+                if(getchar() == 'q'){
                     fclose(time_log);
                     fclose(gaze_log);
                     fclose(pupil_log);
                     exit_flag = true;
+                    break;
                 }
             }
         }
     }
-    
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     return 0;
 }
