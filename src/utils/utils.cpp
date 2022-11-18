@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include "utils.h"
 
+bool print_flag = false;
+
 int count_files_num(std::string dir_name){
     DIR* dir;       // ディレクトリへのポインタ
     struct dirent* entry; // readdir() で返されるエントリーポイント
@@ -83,4 +85,9 @@ int kbhit(void)
     }
 
     return 0;
+}
+
+void my_print(std::string message){
+    if(print_flag) std::cout << message << std::endl;
+    return;
 }
