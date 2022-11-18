@@ -6,6 +6,7 @@
 #include "display.h"
 #include "./../main.h"
 #include "./../camera/camera.h"
+#include "./../utils/utils.h"
 #include "./opengl.h"
 
 #define logitech "Logitech StreamCam"
@@ -158,12 +159,16 @@ void my_display_func(void){
 
     glutPostRedisplay();
     glutSwapBuffers();
+    if(check_exit_flag()){
+        glutLeaveMainLoop();
+    }
+    return;
 }
 
 
 void init(void){
     glClearColor(0.5, 0.5, 0.5, 1.0); // init
-    std::cout << "init!" << std::endl;
+    my_print("init!");
 }
 
 Display::Display(int h, int w):
@@ -180,11 +185,12 @@ void Display::show_graphic(int argc, char* argv[]){
         cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
         cammount_camera_cap.set(cv::CAP_PROP_FPS, 30);
 
-        if(cammount_camera_cap.isOpened()) std::cout << "cap success!" << std::endl;
+        if(cammount_camera_cap.isOpened()) my_print("cap success!");
     }
 
 
     glutInit(&argc, argv);
+    glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
     glutInitWindowPosition(0, 0);
     glutCreateWindow("fove display");

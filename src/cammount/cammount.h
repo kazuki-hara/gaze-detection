@@ -1,5 +1,6 @@
 #include <string>
 #include <netdb.h>
+#include <tuple>
 
 class Cammount{
 public:
@@ -7,7 +8,7 @@ public:
     ~Cammount(void);
     bool check_connection(void);
     void connection(void);
-    std::string gaze_to_command(double, double, double, double);
+    std::string gaze_to_command(std::tuple<double, double, double, double>);
     int send_command(void);
 
 private:

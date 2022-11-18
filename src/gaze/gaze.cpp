@@ -5,8 +5,10 @@
 #include <iostream>
 #include <vector>
 #include "gaze.h"
+#include "./../utils/utils.h"
 
 int name = 0;
+
 
 void remove_blank_line(cv::Mat & original_image){
     for(int x=0; x<10; x++){
@@ -315,7 +317,6 @@ std::tuple<double, double> EyeInfoGetterV2::cal_center_of_gravity(cv::Mat binari
                             }
                             width = x_max - x_min;
                             height = y_max - y_min;
-                            //std::cout << width << " " << height << std::endl;
 
                             mu = cv::moments(contours[j]);
                             mc = cv::Point2f(mu.m10/mu.m00, mu.m01/mu.m00);
@@ -453,10 +454,9 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center(
         std::tuple<double, double> left_pupil_center = cal_center_of_gravity_v2(left_image, left_circles[left_pupil_circle_index]);
         lx = std::get<0>(left_pupil_center);
         ly = std::get<1>(left_pupil_center);
-        //if(lx == -1 || ly == -1) std::cout << "left circle is not pupil" << std::endl;
-        cv::Mat left_edge_image = draw_pupil_edge(left_image, lx, ly);
-        cv::imwrite("left_edge.png", left_edge_image);
-    }//else std::cout << "left circle is not found" << std::endl;
+        if(lx == -1 || ly == -1) my_print("left circle is not pupil");
+        //cv::Mat left_edge_image = draw_pupil_edge(left_image, lx, ly);
+    }else my_print("left circle is not found");
 
     // 右目の瞳孔中心計算
     double rx = -1, ry = -1;
@@ -464,10 +464,9 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center(
         std::tuple<double, double> right_pupil_center = cal_center_of_gravity_v2(right_image, right_circles[right_pupil_circle_index]);
         rx = std::get<0>(right_pupil_center);
         ry = std::get<1>(right_pupil_center);
-        //if(lx == -1 || ly == -1) std::cout << "right circle is not pupil" << std::endl;
-        cv::Mat edge_image = draw_pupil_edge(right_image, rx, ry);
-        cv::imwrite("right_edge.png", edge_image);
-    }//else std::cout << " right circle is not found" << std::endl;
+        if(lx == -1 || ly == -1) my_print("right circle is not pupil");
+        //cv::Mat right_edge_image = draw_pupil_edge(right_image, rx, ry);
+    }else my_print("right circle is not found");
 
     return std::make_tuple(lx, ly, rx, ry);
 }
@@ -508,10 +507,10 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
             cv::imwrite("left_image.png", left_image);
             //cv::imshow("left", left_image);
         }else{
-            std::cout << "circle is not pupil" << std::endl;
+            my_print("circle is not pupil");
         }
     }else{
-        std::cout << "circle not found" << std::endl;
+        my_print("circle not found");
     }
     index = select_pupil_circle(right_image, right_circles);
 
@@ -527,10 +526,10 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
             ry = box.center.y;
             //cv::imshow("right", right_image);
         }else{
-            std::cout << "circle is not pupil" << std::endl;
+           my_print("circle is not pupil");
         }
     }else{
-        std::cout << "circle not found" << std::endl;
+        my_print("circle not found");
     }
     //dist = cv::converted_images(left_image, right_image);
     return std::make_tuple(lx, ly, rx, ry);

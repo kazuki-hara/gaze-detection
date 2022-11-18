@@ -68,7 +68,12 @@ void Cammount::connection(void){
     return;
 }
 
-std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry){
+std::string Cammount::gaze_to_command(std::tuple<double, double, double, double> gaze_data){
+    double lx = std::get<0>(gaze_data);
+    double ly = std::get<1>(gaze_data);
+    double rx = std::get<2>(gaze_data);
+    double ry = std::get<3>(gaze_data);
+
     // lx,ly,rx,ry -> pp,ps,tp,tsをここに実装
     if(check_detect_pupil_flag() && check_gaze_in_disp_flag()){
         double mean_x = (lx + rx) / 2;
@@ -111,19 +116,15 @@ std::string Cammount::gaze_to_command(double lx, double ly, double rx, double ry
 int Cammount::send_command(void){
     while(true)
     {
+        if(check_exit_flag()){
+            close(s);
+            break;
+        }
         std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
-        double lx = std::get<0>(gaze_data);
-        double ly = std::get<1>(gaze_data);
-        double rx = std::get<2>(gaze_data);
-        double ry = std::get<3>(gaze_data);
-
         
-        std::string buffer_str = gaze_to_command(lx, ly, rx, ry);
-        //std::cout << lx << " " << ly << " " << rx << " " << ry << " " << std::endl;
-        //std::cout << buffer_str << std::endl;
+        std::string buffer_str = gaze_to_command(gaze_data);
         const char* buffer = buffer_str.c_str();
-        //std::cout << buffer << std::endl;
-        //std::cout << "result" << sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin)) << std::endl;
+
         if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
             fprintf(stderr, "Can't sendto from the socket.\n");
         //close(s);
@@ -131,10 +132,7 @@ int Cammount::send_command(void){
         }
 	    
         usleep(0.5 *1000000);
-        if(check_exit_flag()){
-            close(s);
-            break;
-        }
+        
     }
 
     //close(s);

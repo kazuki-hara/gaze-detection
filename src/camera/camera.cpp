@@ -13,13 +13,13 @@
 #include <linux/videodev2.h>
 #include "camera.h"
 #include "./../main.h"
+#include "./../utils/utils.h"
 
 
 Camera::Camera(std::string dev_name){
     struct stat l_st;
     struct v4l2_capability l_v4l2cap;
     char l_dev_name[1024];
-    std::cout << l_dev_name << std::endl;
     int m_fd;
     for(int i=0; i<63; ++i){
         sprintf(l_dev_name, "/dev/video%d", i);
@@ -28,24 +28,24 @@ Camera::Camera(std::string dev_name){
             continue;
         }
         if(-1 == stat(l_dev_name, &l_st)){
-            std::cout << "Cannot indentify " << l_dev_name << std::endl;
+            //std::cout << "Cannot indentify " << l_dev_name << std::endl;
             continue;
         }
         if(!S_ISCHR(l_st.st_mode)){
-            std::cout << l_dev_name << " is not device" << std::endl;
+            //std::cout << l_dev_name << " is not device" << std::endl;
             continue;
         }
         if(std::string((const char *)l_v4l2cap.card) == dev_name){
-            std::cout << "Find " << dev_name << std::endl;
+            //std::cout << "Find " << dev_name << std::endl;
             dev_id = i;
             break;
         }
     }
     if(m_fd == -1){
-        std::cout << "Cannot open " << dev_name << std::endl;
+        //std::cout << "Cannot open " << dev_name << std::endl;
         exit(EXIT_FAILURE);
     }
-    std::cout << "dev_id: " << dev_id << std::endl;
+    //std::cout << "dev_id: " << dev_id << std::endl;
     dev_open = false;
 }
 
@@ -60,7 +60,9 @@ void Camera::capture(void){
     {
         frame = _frame;
         dev_open = true;
-        if(check_exit_flag()) break;
+        if(check_exit_flag()){
+            break;
+        }
     }
     return;
 }
