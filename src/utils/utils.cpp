@@ -91,3 +91,14 @@ void my_print(std::string message){
     if(print_flag) std::cout << message << std::endl;
     return;
 }
+
+bool check_int(std::string str)
+{
+    try {
+        int n = std::stoi(str);
+    }
+    catch (...) {
+        return false;
+    }
+    return true;
+}

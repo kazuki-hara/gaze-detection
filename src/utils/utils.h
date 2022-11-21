@@ -15,3 +15,4 @@ class FileOperator{
 int count_files_num(std::string);
 int kbhit(void);
 void my_print(std::string);
+bool check_int(std::string);
