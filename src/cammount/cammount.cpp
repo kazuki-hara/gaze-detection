@@ -8,8 +8,10 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include "./cammount.h"
 #include "./../main.h"
+#include "./../utils/utils.h"
 
 #define BUFFER_SIZE 512
 
@@ -27,6 +29,33 @@
 
 double kp = 1.0; // 比例ゲイン
 double seconds_arc_per_position = 46.2857; // 1ステップあたりの角度
+
+
+void get_position_from_rcv_buffer(std::string rcv_buffer){
+    std::string s;
+    std::replace(rcv_buffer.begin(), rcv_buffer.end(), '\n', ' ');
+    std::vector<std::string> split_buffer;
+    std::stringstream ss_buffer(rcv_buffer);
+    while(getline(ss_buffer, s, ' ')){
+        split_buffer.push_back(s);
+    }
+    //for (const std::string& s : split_buffer){         // vの中身を出力
+    //    std::cout << s << std::endl;
+    //}
+    int pp = NULL, tp = NULL;
+    for(int i=0; i<split_buffer.size(); i++){
+        if(check_int(split_buffer[i])){
+            if(pp == NULL) pp = std::stoi(split_buffer[i]);
+            else if(tp == NULL){
+                tp = std::stoi(split_buffer[i]);
+                break;
+            }
+        }
+    }
+    std::cout << pp << " " << tp << std::endl;
+}
+
+
 
 Cammount::Cammount(std::string input_hostname, int input_port){
     hostname = input_hostname;
@@ -114,21 +143,44 @@ std::string Cammount::gaze_to_command(std::tuple<double, double, double, double>
 }
 
 int Cammount::send_command(void){
+    int i = 0;
+    char rcv_buffer[BUFFER_SIZE];
     while(true)
     {
         if(check_exit_flag()){
             close(s);
             break;
         }
-        std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
         
-        std::string buffer_str = gaze_to_command(gaze_data);
-        const char* buffer = buffer_str.c_str();
+        std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
 
-        if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
+        std::string buffer_str;
+
+        if(check_detect_pupil_flag() && check_gaze_in_disp_flag()){
+            buffer_str = gaze_to_command(gaze_data);
+            const char* buffer = buffer_str.c_str();
+            if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
             fprintf(stderr, "Can't sendto from the socket.\n");
-        //close(s);
-        //return 1;
+            //close(s);
+            //return 1;
+            }
+        }
+        else{
+            buffer_str = "pp tp ps0 ts0 pp0 tp0\n";
+            const char* buffer = buffer_str.c_str();
+
+            if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
+                fprintf(stderr, "Can't sendto from the socket.\n");
+            //close(s);
+            //return 1;
+            }
+            
+            recv(s, rcv_buffer, BUFFER_SIZE, 0);
+            std::cout << i << "番目のrcv_buffer #######################" << std::endl;
+            //std::cout << rcv_buffer[29] << std::endl;
+            std::string string_rcv_buffer = std::string(rcv_buffer);
+            get_position_from_rcv_buffer(string_rcv_buffer);
+            i++;
         }
 	    
         usleep(0.5 *1000000);
