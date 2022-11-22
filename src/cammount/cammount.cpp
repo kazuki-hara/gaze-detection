@@ -28,10 +28,12 @@
 #define FOVE_VEIW_ANGLE 100
 
 double kp = 1.0; // 比例ゲイン
+double kd = 0.2;
+double ki = 0.1;
 double seconds_arc_per_position = 46.2857; // 1ステップあたりの角度
 
 
-void get_position_from_rcv_buffer(std::string rcv_buffer){
+std::tuple<int, int> get_position_from_rcv_buffer(std::string rcv_buffer){
     std::string s;
     std::replace(rcv_buffer.begin(), rcv_buffer.end(), '\n', ' ');
     std::vector<std::string> split_buffer;
@@ -48,11 +50,13 @@ void get_position_from_rcv_buffer(std::string rcv_buffer){
             if(pp == NULL) pp = std::stoi(split_buffer[i]);
             else if(tp == NULL){
                 tp = std::stoi(split_buffer[i]);
-                break;
+                return std::make_tuple(pp, tp);
             }
         }
     }
-    std::cout << pp << " " << tp << std::endl;
+    pp = -1;
+    tp = -1;
+    return std::make_tuple(pp, tp);
 }
 
 
@@ -62,6 +66,12 @@ Cammount::Cammount(std::string input_hostname, int input_port){
     port = input_port;
     pp = 0;
     tp = 0;
+    pp_p = 0;
+    pp_i = 0;
+    pp_d = 0;
+    tp_p = 0;
+    tp_i = 0;
+    tp_d = 0;
 }
 
 Cammount::~Cammount(void){}
@@ -104,29 +114,21 @@ std::string Cammount::gaze_to_command(std::tuple<double, double, double, double>
     double ry = std::get<3>(gaze_data);
 
     // lx,ly,rx,ry -> pp,ps,tp,tsをここに実装
-    if(check_detect_pupil_flag() && check_gaze_in_disp_flag()){
-        double mean_x = (lx + rx) / 2;
-        double mean_y = (ly + ry) / 2;
+    double mean_x = (lx + rx) / 2;
+    double mean_y = (ly + ry) / 2;
 
-        double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(mean_x) / 1280);
-        double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(mean_y) / 1280);
+    double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(mean_x) / 1280);
+    double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(mean_y) / 1280);
 
-        // 移動する方向を指定
-        if(mean_x >= 0) pp = PAN_POSITION_MIN;
-        else pp = PAN_POSITION_MAX;
-        if(mean_y >= 0) tp = TILTE_POSITION_MAX;
-        else tp = TILTE_POSITION_MIN;
+    // 移動する方向を指定
+    if(mean_x >= 0) pp = PAN_POSITION_MIN;
+    else pp = PAN_POSITION_MAX;
+    if(mean_y >= 0) tp = TILTE_POSITION_MAX;
+    else tp = TILTE_POSITION_MIN;
 
-        // 移動する速度を指定
-        ps = (int)(theta_x * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
-        ts = (int)(theta_y * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
-    }else{
-        pp = 0;
-        ps = 0;
-        tp = 0;
-        ts = 0;
-    }
-
+    // 移動する速度を指定
+    ps = (int)(theta_x * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
+    ts = (int)(theta_y * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
 
     std::string ps_str = std::to_string(ps);
     std::string pp_str = std::to_string(pp);
@@ -138,6 +140,27 @@ std::string Cammount::gaze_to_command(std::tuple<double, double, double, double>
     for (unsigned int i = 0; i < pp_str.size(); i++) buffer[i + 9] = pp_str[i];
     for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 18] = ts_str[i];
     for (unsigned int i = 0; i < tp_str.size(); i++) buffer[i + 25] = tp_str[i];
+
+    return buffer;
+}
+
+std::string Cammount::position_to_command(void){
+    pp = 0;
+    tp = 0;
+
+    ps = (int)abs((pp_p * kp + pp_i * ki + pp_d * kd));
+    ts = (int)abs((tp_p * kp + tp_i * ki + tp_d * kd));
+
+    std::string ps_str = std::to_string(ps);
+    std::string pp_str = std::to_string(pp);
+    std::string ts_str = std::to_string(ts);
+    std::string tp_str = std::to_string(tp);
+
+    char buffer[] = {'p', 'p', ' ', 't', 'p', ' ', 'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
+    for (unsigned int i = 0; i < ps_str.size(); i++) buffer[i + 8] = ps_str[i];
+    for (unsigned int i = 0; i < pp_str.size(); i++) buffer[i + 15] = pp_str[i];
+    for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 24] = ts_str[i];
+    for (unsigned int i = 0; i < tp_str.size(); i++) buffer[i + 31] = tp_str[i];
 
     return buffer;
 }
@@ -157,6 +180,12 @@ int Cammount::send_command(void){
         std::string buffer_str;
 
         if(check_detect_pupil_flag() && check_gaze_in_disp_flag()){
+            pp_p = 0;
+            pp_i = 0;
+            pp_d = 0;
+            tp_p = 0;
+            tp_i = 0;
+            tp_d = 0;
             buffer_str = gaze_to_command(gaze_data);
             const char* buffer = buffer_str.c_str();
             if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
@@ -166,7 +195,7 @@ int Cammount::send_command(void){
             }
         }
         else{
-            buffer_str = "pp tp ps0 ts0 pp0 tp0\n";
+            buffer_str = position_to_command();
             const char* buffer = buffer_str.c_str();
 
             if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
@@ -177,9 +206,22 @@ int Cammount::send_command(void){
             
             recv(s, rcv_buffer, BUFFER_SIZE, 0);
             std::cout << i << "番目のrcv_buffer #######################" << std::endl;
-            //std::cout << rcv_buffer[29] << std::endl;
+            std::cout << rcv_buffer << std::endl;
             std::string string_rcv_buffer = std::string(rcv_buffer);
-            get_position_from_rcv_buffer(string_rcv_buffer);
+            std::tuple<int, int> cammount_pos = get_position_from_rcv_buffer(string_rcv_buffer);
+            int pp_tmp = std::get<0>(cammount_pos);
+            int tp_tmp = std::get<1>(cammount_pos);
+            if(pp_p != 0){
+                pp_d = pp_tmp - pp_p;
+                pp_i += pp_d;
+            }
+            pp_p = pp_tmp;
+            if(tp_p != 0){
+                tp_d = tp_tmp - tp_p;
+                tp_i += tp_d;
+            }
+            tp_p = tp_tmp;
+            
             i++;
         }
 	    

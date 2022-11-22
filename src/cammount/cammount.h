@@ -9,6 +9,7 @@ public:
     bool check_connection(void);
     void connection(void);
     std::string gaze_to_command(std::tuple<double, double, double, double>);
+    std::string position_to_command(void);
     int send_command(void);
 
 private:
@@ -18,4 +19,5 @@ private:
     struct hostent* dst;
     int s;
     int pp, ps, tp, ts;
+    int pp_p, pp_i, pp_d, tp_p, tp_i, tp_d;
 };
