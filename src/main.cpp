@@ -174,20 +174,25 @@ int main(int argc, char *argv[]){
     while(true){
         if(eye_camera.check_device_opened()){
             cv::Mat frame = eye_camera.get_frame();
-            fprintf(time_log, "%f\n", get_passed_time());
+            
             //cv::imwrite(image_dir + std::to_string(i) + ".png", frame);
-            std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center_v2(frame);
+            std::tuple<double, double, double, double> pupil_pos = eye_info_getter.detect_pupil_center(frame);
             double lx = std::get<0>(pupil_pos);
             double ly = std::get<1>(pupil_pos);
             double rx = std::get<2>(pupil_pos);
             double ry = std::get<3>(pupil_pos);
+            fprintf(time_log, "%f\n", get_passed_time());
             fprintf(pupil_log, "%f %f %f %f\n", lx, ly, rx, ry);
 
             detect_pupil_flag = eye_info_getter.check_detect_pupil();
 
             if(mode == 1 && detect_pupil_flag == true){
                 disp_gaze = calib.calcuration_gaze_point(lx, ly, rx, ry);
+                fprintf(gaze_log, "%f %f %f %f\n", std::get<0>(disp_gaze), std::get<1>(disp_gaze), std::get<2>(disp_gaze), std::get<3>(disp_gaze));
                 gaze_in_disp_flag = calib.check_gaze_in_disp_flag();
+            }else if(mode == 1 && detect_pupil_flag == false){
+                fprintf(gaze_log, "%f %f %f %f\n", -1, -1, -1, -1);
+                gaze_in_disp_flag = false;
             }
             i++;
         }
@@ -197,6 +202,7 @@ int main(int argc, char *argv[]){
                 std::cout << "finish" << std::endl;
                 fclose(time_log);
                 fclose(pupil_log);
+                exit_flag = true;
                 break;
             }
         }
