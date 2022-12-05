@@ -95,12 +95,14 @@ cv::Mat draw_hough_circles(cv::Mat original_image, std::vector<cv::Vec3f> left_c
 
 cv::Mat draw_hough_circle(cv::Mat original_image, cv::Vec3f circle){
     cv::Mat dist = original_image.clone();
+    cv::cvtColor(dist, dist, cv::COLOR_GRAY2BGR);
     double x, y, radius;
 
     x = circle[0];
     y = circle[1];
     radius = circle[2];
-    cv::circle(dist, cv::Point(x, y), radius, cv::Scalar(0,0,200), 3, 4);
+    cv::circle(dist, cv::Point(x, y), radius, cv::Scalar(0,200,0), 2, 4);
+    //cv::imwrite("hough.png", dist);
     return dist;
 }
 
@@ -251,7 +253,7 @@ int EyeInfoGetterV2::select_pupil_circle(cv::Mat input_image, std::vector<cv::Ve
         for(unsigned int i = 0; i < circles.size(); i++){
             int x = (int)circles[i][0];
             int y = (int)circles[i][1];
-            if(matching_image_size/2 <= x && x < eye_image.size().width - matching_image_size/2 && matching_image_size/2 <= y && y < eye_image.size().height - matching_image_size/2){
+            if(matching_image_size/2 < x && x < eye_image.size().width - matching_image_size/2 && matching_image_size/2 < y && y < eye_image.size().height - matching_image_size/2){
                 cv::Mat eye_image_around_circle = cv::Mat(eye_image, cv::Rect(x - matching_image_size/2, y - matching_image_size/2, 40, 40));
                 cv::Mat result_image;
                 cv::matchTemplate(eye_image_around_circle, matching_image, result_image, cv::TM_CCOEFF_NORMED);
@@ -485,6 +487,8 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
     //cv::imwrite("2.png", right_image_copy);
     std::vector<cv::Vec3f> left_circles = detect_pupil_circle(left_image_copy);
     std::vector<cv::Vec3f> right_circles = detect_pupil_circle(right_image_copy);
+    //draw_hough_circle(right_image_copy, right_circles[0]);
+
 
     //cv::Mat circles_image = draw_hough_circles(right_image, right_circles, left_circles);
     //cv::imwrite("3.png", circles_image);
@@ -504,7 +508,7 @@ std::tuple<double, double, double, double> EyeInfoGetterV2::detect_pupil_center_
             lx = box.center.x;
             ly = box.center.y;
             cv::ellipse(left_image, left_box, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
-            cv::imwrite("left_image.png", left_image);
+            //cv::imwrite("left_image.png", left_image);
             //cv::imshow("left", left_image);
         }else{
             my_print("circle is not pupil");
