@@ -13,6 +13,7 @@
 #include "./../main.h"
 #include "./../utils/utils.h"
 
+
 #define BUFFER_SIZE 512
 
 #define L_SPEED 15
@@ -28,8 +29,10 @@
 #define FOVE_VEIW_ANGLE 100
 
 double kp = 1.0; // 比例ゲイン
-double kd = 0.2;
-double ki = 0.1;
+
+double kp_pos = 0.5;
+double kd_pos = 0.2;
+double ki_pos = 0.1;
 double seconds_arc_per_position = 46.2857; // 1ステップあたりの角度
 
 
@@ -54,8 +57,8 @@ std::tuple<int, int> get_position_from_rcv_buffer(std::string rcv_buffer){
             }
         }
     }
-    pp = -1;
-    tp = -1;
+    pp = 0;
+    tp = 0;
     return std::make_tuple(pp, tp);
 }
 
@@ -66,6 +69,10 @@ Cammount::Cammount(std::string input_hostname, int input_port){
     port = input_port;
     pp = 0;
     tp = 0;
+    pp_diff = 0;
+    tp_diff = 0;
+    pp_dist = 0;
+    tp_dist = 0;
     pp_p = 0;
     pp_i = 0;
     pp_d = 0;
@@ -103,10 +110,30 @@ void Cammount::connection(void){
     char rcv_buffer[BUFFER_SIZE];
     connect(s, (const struct sockaddr *)&sin, sizeof(sin));
     recv(s, rcv_buffer, BUFFER_SIZE, 0);
-    printf("%s", rcv_buffer);
+
     return;
 }
 
+// 視線方向が画面中央になるまでの必要ステップ数
+std::tuple <int, int> Cammount::gaze_to_step(std::tuple<double, double, double, double> gaze_data){
+    double lx = std::get<0>(gaze_data);
+    double ly = std::get<1>(gaze_data);
+    double rx = std::get<2>(gaze_data);
+    double ry = std::get<3>(gaze_data);
+
+    double mean_x = (lx + rx) / 2;
+    double mean_y = (ly + ry) / 2;
+
+    double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(mean_x) / 1280);
+    double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(mean_y) / 1280);
+
+    int step_x = (int)(theta_x * 180 / M_PI / (seconds_arc_per_position / 3600));
+    int step_y = (int)(theta_y * 180 / M_PI / (seconds_arc_per_position / 3600));
+
+    return std::make_tuple(step_x, step_y);
+}
+
+// 視線方向から雲台制御コマンドを生成
 std::string Cammount::gaze_to_command(std::tuple<double, double, double, double> gaze_data){
     double lx = std::get<0>(gaze_data);
     double ly = std::get<1>(gaze_data);
@@ -117,39 +144,50 @@ std::string Cammount::gaze_to_command(std::tuple<double, double, double, double>
     double mean_x = (lx + rx) / 2;
     double mean_y = (ly + ry) / 2;
 
-    double theta_x = std::atan(std::tan(50 * M_PI / 180) * abs(mean_x) / 1280);
-    double theta_y = std::atan(std::tan(50 * M_PI / 180) * abs(mean_y) / 1280);
+    // 移動する方向を指定、目標方向までのステップ数
+    std::tuple<int, int> steps = gaze_to_step(gaze_data); 
+    int p_steps= std::get<0>(steps);
+    int t_steps = std::get<1>(steps); 
+    if(mean_x >= 0){
+        pp = PAN_POSITION_MIN;
+        pp_diff = -1 * p_steps;
+    }else{
+        pp = PAN_POSITION_MAX;
+        pp_diff = p_steps;
+    }
+    if(mean_y >= 0){
+        tp = TILTE_POSITION_MAX;
+        tp_diff = t_steps;
+    }else{
+        tp = TILTE_POSITION_MIN;
+        tp_diff = -1 * t_steps;
+    }
 
-    // 移動する方向を指定
-    if(mean_x >= 0) pp = PAN_POSITION_MIN;
-    else pp = PAN_POSITION_MAX;
-    if(mean_y >= 0) tp = TILTE_POSITION_MAX;
-    else tp = TILTE_POSITION_MIN;
-
-    // 移動する速度を指定
-    ps = (int)(theta_x * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
-    ts = (int)(theta_y * kp * 180 / M_PI / (seconds_arc_per_position / 3600));
+    // 移動する速度を指定 (kp: 比例ゲイン)
+    ps = p_steps * kp;
+    ts = t_steps * kp;
 
     std::string ps_str = std::to_string(ps);
     std::string pp_str = std::to_string(pp);
     std::string ts_str = std::to_string(ts);
     std::string tp_str = std::to_string(tp);
 
-    char buffer[] = {'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
-    for (unsigned int i = 0; i < ps_str.size(); i++) buffer[i + 2] = ps_str[i];
-    for (unsigned int i = 0; i < pp_str.size(); i++) buffer[i + 9] = pp_str[i];
-    for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 18] = ts_str[i];
-    for (unsigned int i = 0; i < tp_str.size(); i++) buffer[i + 25] = tp_str[i];
+    char buffer[] = {'p','p', ' ', 't', 'p', ' ', 'p','s', ' ', ' ', ' ', ' ', ' ', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 't', 's', ' ', ' ', ' ', ' ', ' ', 't', 'p', ' ', ' ', ' ', ' ', ' ','\n'};
+    for (unsigned int i = 0; i < ps_str.size(); i++) buffer[i + 8] = ps_str[i];
+    for (unsigned int i = 0; i < pp_str.size(); i++) buffer[i + 15] = pp_str[i];
+    for (unsigned int i = 0; i < ts_str.size(); i++) buffer[i + 24] = ts_str[i];
+    for (unsigned int i = 0; i < tp_str.size(); i++) buffer[i + 31] = tp_str[i];
 
     return buffer;
 }
 
+// 視線検出エラー時に、最後に検出に成功した視線方向を元にPID制御するコマンドを生成
 std::string Cammount::position_to_command(void){
-    pp = 0;
-    tp = 0;
+    pp = pp_dist;
+    tp = tp_dist;
 
-    ps = (int)abs((pp_p * kp + pp_i * ki + pp_d * kd));
-    ts = (int)abs((tp_p * kp + tp_i * ki + tp_d * kd));
+    ps = (int)abs((pp_p * kp_pos + pp_i * ki_pos + pp_d * kd_pos));
+    ts = (int)abs((tp_p * kp_pos + tp_i * ki_pos + tp_d * kd_pos));
 
     std::string ps_str = std::to_string(ps);
     std::string pp_str = std::to_string(pp);
@@ -166,7 +204,6 @@ std::string Cammount::position_to_command(void){
 }
 
 int Cammount::send_command(void){
-    int i = 0;
     char rcv_buffer[BUFFER_SIZE];
     while(true)
     {
@@ -178,20 +215,35 @@ int Cammount::send_command(void){
         std::tuple<double, double, double, double> gaze_data = get_gaze_pixel();
 
         std::string buffer_str;
-
+        
+        // 注視点推定成功時
         if(check_detect_pupil_flag() && check_gaze_in_disp_flag()){
+            // PID制御をリセット
             pp_p = 0;
             pp_i = 0;
             pp_d = 0;
             tp_p = 0;
             tp_i = 0;
             tp_d = 0;
+
+            // 制御コマンドの生成 -> 送信
             buffer_str = gaze_to_command(gaze_data);
             const char* buffer = buffer_str.c_str();
             if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
-            fprintf(stderr, "Can't sendto from the socket.\n");
-            //close(s);
-            //return 1;
+                fprintf(stderr, "Can't sendto from the socket.\n");
+                close(s);
+                return -1;
+            }
+
+            // recvBufferから現在ステップ位置を取得 -> 目標ステップ位置を計算 (次フレームで瞳孔検出エラー時にPID制御するために使用)
+            recv(s, rcv_buffer, BUFFER_SIZE, 0);
+            std::string string_rcv_buffer = std::string(rcv_buffer);
+            std::tuple<int, int> cammount_pos = get_position_from_rcv_buffer(string_rcv_buffer);
+            int pp_tmp = std::get<0>(cammount_pos);
+            int tp_tmp = std::get<1>(cammount_pos);
+            if(pp_tmp != 0 && tp_tmp != 0){
+                pp_dist = pp_tmp + pp_diff;
+                tp_dist = tp_tmp + tp_diff; 
             }
         }
         else{
@@ -200,29 +252,26 @@ int Cammount::send_command(void){
 
             if(sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&sin, sizeof(sin))==-1){
                 fprintf(stderr, "Can't sendto from the socket.\n");
-            //close(s);
-            //return 1;
+                close(s);
+                return -1;
             }
             
             recv(s, rcv_buffer, BUFFER_SIZE, 0);
-            std::cout << i << "番目のrcv_buffer #######################" << std::endl;
-            std::cout << rcv_buffer << std::endl;
             std::string string_rcv_buffer = std::string(rcv_buffer);
             std::tuple<int, int> cammount_pos = get_position_from_rcv_buffer(string_rcv_buffer);
             int pp_tmp = std::get<0>(cammount_pos);
             int tp_tmp = std::get<1>(cammount_pos);
-            if(pp_p != 0){
-                pp_d = pp_tmp - pp_p;
-                pp_i += pp_d;
+
+            if(pp_dist != 0){
+                pp_d = (pp_dist - pp_tmp) - pp_p; // D制御: 現在差分 - 前回差分
+                pp_p = pp_dist - pp_tmp; // P制御: 現在差分
+                pp_i += pp_p; // I制御: 現在差分を加算
             }
-            pp_p = pp_tmp;
-            if(tp_p != 0){
-                tp_d = tp_tmp - tp_p;
-                tp_i += tp_d;
+            if(tp_dist != 0){
+                tp_d = (tp_dist - tp_tmp) - pp_p; // D制御: 現在差分 - 前回差分
+                tp_p = tp_dist - tp_tmp; // P制御: 現在差分
+                tp_i += tp_p; // I制御: 現在差分を加算
             }
-            tp_p = tp_tmp;
-            
-            i++;
         }
 	    
         usleep(0.5 *1000000);
