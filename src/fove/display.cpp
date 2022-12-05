@@ -8,6 +8,8 @@
 #include "./../camera/camera.h"
 #include "./../utils/utils.h"
 #include "./opengl.h"
+#include "fstream"
+#include "vector"
 
 #define logitech "Logitech StreamCam"
 #define PayCam "PayCam: PayCam"
@@ -21,9 +23,36 @@ cv::VideoCapture cammount_camera_cap;
 Camera cammount_camera(logitech);
 cv::Mat cammount_camera_image_tmp;
 cv::Mat cammount_camera_image;
+int cammount_camera_image_width = 1280;
+int cammount_camera_image_height = 720;
 
 double passed_time;
 std::tuple<double, double, double, double> gaze_pixel;
+
+
+// データ関連
+std::string data_dir = "/share/home/hara/Data/fove/tmp/";
+std::vector<cv::Mat> gaze_picture_vec; // 注視点近傍画像の時系列データを格納
+int gaze_picture_size = 100; // 注視点近傍画像のサイズ
+std::string gaze_picture_dir = data_dir + "image/";
+std::vector<double> passd_time_vec; // 経過時間の時系列データを格納 (注視点近傍画像の取得時間と対応させる)
+const char* passed_time_path = (data_dir + "gaze_picture_time.txt").c_str();
+FILE* key_log;
+std::string key_log_path = data_dir + "key.txt";
+
+void save_data(void){
+    FILE* passed_time_log;
+    passed_time_log = fopen(passed_time_path, "w");
+
+    for(unsigned int i = 0; i < gaze_picture_vec.size() - 1; i++){
+        std::string image_path = gaze_picture_dir + std::to_string(i) + ".png";
+        cv::imwrite(image_path, gaze_picture_vec[i]);
+        std::cout << image_path << " saved!" << std::endl;
+        fprintf(passed_time_log, "%f\n", passd_time_vec[i]);
+    }
+    fclose(passed_time_log);    
+    
+}
 
 void put_2d_image_cv_ishikawa(GLdouble x, GLdouble y, GLdouble width, GLdouble height, GLdouble div)
 {
@@ -146,6 +175,25 @@ void my_display_func(void){
         if(cammount_camera_cap.isOpened()) cammount_camera_cap.read(cammount_camera_image);
         cv::cvtColor(cammount_camera_image, cammount_camera_image, cv::COLOR_BGR2RGB);
         gaze_pixel = get_gaze_pixel();
+        if(check_detect_pupil_flag() == true || check_gaze_in_disp_flag() == true){
+            double lx = std::get<0>(gaze_pixel);
+            double ly = std::get<1>(gaze_pixel);
+            double rx = std::get<2>(gaze_pixel);
+            double ry = std::get<3>(gaze_pixel);
+
+            double x_mean = (lx + rx) / 2;
+            double y_mean = (ly + ry) / 2;
+
+            int x_image_pos = (int) x_mean + cammount_camera_image_width / 2;
+            int y_image_pos = (int) y_mean + cammount_camera_image_height / 2;
+
+            if(gaze_picture_size / 2 < x_image_pos && x_image_pos < cammount_camera_image_width - gaze_picture_size / 2 && 
+            gaze_picture_size / 2 < y_image_pos && y_image_pos < cammount_camera_image_height - gaze_picture_size / 2){
+                gaze_picture_vec.push_back(cv::Mat(cammount_camera_image, cv::Rect(x_image_pos - gaze_picture_size / 2, y_image_pos - gaze_picture_size / 2, gaze_picture_size, gaze_picture_size)));
+                passd_time_vec.push_back(passed_time);
+            }
+
+        }
     }
 
     glClear(GL_COLOR_BUFFER_BIT);
@@ -160,29 +208,45 @@ void my_display_func(void){
     glutPostRedisplay();
     glutSwapBuffers();
     if(check_exit_flag()){
+        save_data();
+        fclose(key_log);
         glutLeaveMainLoop();
     }
     return;
 }
 
+void my_keyboard_func(unsigned char key, int x, int y){
+    switch (key)
+    {
+    case 'w':
+        fprintf(key_log, "%f\n", get_passed_time());
+        break;
+    default:
+        break;
+    }
+    return;
+}
 
 void init(void){
     glClearColor(0.5, 0.5, 0.5, 1.0); // init
     my_print("init!");
+    return;
 }
 
 Display::Display(int h, int w):
     height(h),
     width(w)
-    {}
+    {
+        key_log = fopen("/share/home/hara/Data/fove/tmp/key.txt", "w");
+    }
 
 Display::~Display(void){}
 
 void Display::show_graphic(int argc, char* argv[]){
     if(check_mode() ==1){
         cammount_camera_cap.open(cammount_camera.get_dev_id());
-        cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1280);
-        cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+        cammount_camera_cap.set(cv::CAP_PROP_FRAME_WIDTH, cammount_camera_image_width);
+        cammount_camera_cap.set(cv::CAP_PROP_FRAME_HEIGHT, cammount_camera_image_height);
         cammount_camera_cap.set(cv::CAP_PROP_FPS, 30);
 
         if(cammount_camera_cap.isOpened()) my_print("cap success!");
@@ -197,5 +261,6 @@ void Display::show_graphic(int argc, char* argv[]){
     glutFullScreen();
     init();
     glutDisplayFunc(my_display_func);
+    glutKeyboardFunc(my_keyboard_func);
     glutMainLoop();
 }
