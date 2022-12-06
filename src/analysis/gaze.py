@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_dir = "/share/home/hara/Data/fove/tmp/"
+data_dir = "/share/home/hara/Data/fove/20221125/02/"
 
 gaze_data_file_path = data_dir + "gaze1.txt"
 pupil_data_file_path = data_dir + "pupil1.txt"
@@ -66,11 +66,13 @@ class DataGetter:
         # gaze, time
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.time_data, y_data, label=label)
+        ax.plot(self.time_data, y_data)
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel(label)
 
         for i in range(len(self.key_data)//2):
-            start = self.key_data[i*2+1]
-            end = self.key_data[i*2+2]
+            start = self.key_data[i*2]
+            end = self.key_data[i*2+1]
             ax.axvspan(start, end, color="gray", alpha=0.3)
         fig.savefig(file_name)
 
@@ -81,5 +83,11 @@ class DataGetter:
 if __name__ == "__main__":
     data_getter = DataGetter()
     data_getter.remove_error_data()
-    data_getter.make_time_series_figure([x[0] for x in data_getter.gaze_data], "lx", "gaze_lx.pdf")
-    data_getter.make_time_series_figure([x[0] for x in data_getter.pupil_data], "lx", "pupil_lx.pdf")
+    data_getter.make_time_series_figure([x[0] for x in data_getter.gaze_data], "x (px)", "gaze_lx.pdf")
+    data_getter.make_time_series_figure([x[0] for x in data_getter.pupil_data], "x (px)", "pupil_lx.pdf")
+    data_getter.make_time_series_figure([x[1] for x in data_getter.gaze_data], "y (px)", "gaze_ly.pdf")
+    data_getter.make_time_series_figure([x[1] for x in data_getter.pupil_data], "y (px)", "pupil_ly.pdf")
+    data_getter.make_time_series_figure([x[2] for x in data_getter.gaze_data], "x (px)", "gaze_rx.pdf")
+    data_getter.make_time_series_figure([x[2] for x in data_getter.pupil_data], "x (px)", "pupil_rx.pdf")
+    data_getter.make_time_series_figure([x[3] for x in data_getter.gaze_data], "y (px)", "gaze_ry.pdf")
+    data_getter.make_time_series_figure([x[3] for x in data_getter.pupil_data], "y (px)", "pupil_ry.pdf")
