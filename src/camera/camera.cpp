@@ -36,16 +36,18 @@ Camera::Camera(std::string dev_name){
             continue;
         }
         if(std::string((const char *)l_v4l2cap.card) == dev_name){
+            my_print("Find " + dev_name);
             //std::cout << "Find " << dev_name << std::endl;
             dev_id = i;
             break;
         }
     }
     if(m_fd == -1){
+        my_print("Cannnot open " + dev_name);
         //std::cout << "Cannot open " << dev_name << std::endl;
         exit(EXIT_FAILURE);
     }
-    //std::cout << "dev_id: " << dev_id << std::endl;
+    my_print("dev_id: " + std::to_string(dev_id));
     dev_open = false;
 }
 

@@ -48,7 +48,7 @@ std::tuple<int, int> get_position_from_rcv_buffer(std::string rcv_buffer){
     //    std::cout << s << std::endl;
     //}
     int pp = NULL, tp = NULL;
-    for(int i=0; i<split_buffer.size(); i++){
+    for(unsigned int i = 0; i < split_buffer.size(); i++){
         if(check_int(split_buffer[i])){
             if(pp == NULL) pp = std::stoi(split_buffer[i]);
             else if(tp == NULL){
@@ -61,7 +61,6 @@ std::tuple<int, int> get_position_from_rcv_buffer(std::string rcv_buffer){
     tp = 0;
     return std::make_tuple(pp, tp);
 }
-
 
 
 Cammount::Cammount(std::string input_hostname, int input_port){
@@ -83,9 +82,7 @@ Cammount::Cammount(std::string input_hostname, int input_port){
 
 Cammount::~Cammount(void){}
 
-
-
-
+// 接続確認
 bool Cammount::check_connection(void){
     bool connection_flag = true;
     // 繋がらねえよ
@@ -101,6 +98,7 @@ bool Cammount::check_connection(void){
     return connection_flag;
 }
 
+// 接続開始
 void Cammount::connection(void){
     if(check_connection() == false) return;
     sin.sin_family=AF_INET;

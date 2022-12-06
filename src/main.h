@@ -4,6 +4,7 @@
 #include "opencv2/highgui/highgui.hpp"
 
 #define LOG_RATE 10
+
 double get_passed_time(void);
 int check_mode(void);
 bool check_exit_flag(void);

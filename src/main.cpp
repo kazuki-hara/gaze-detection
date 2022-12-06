@@ -46,6 +46,11 @@ Display display(DISP_HEIGHT, DISP_WIDTH);
 std::string output_dir = "./test/";
 FILE* test;
 
+// スレッド終了判定フラグ
+bool camera_thread_exit_flag = false;
+bool cammount_thread_exit_flag = false;
+bool display_thread_exit_flag = false;
+
 // プログラム開始から何秒経過したか取得する関数 (#include "main.h"で他ファイルでも使用可能)
 double get_passed_time(void){
     return msec;
@@ -59,6 +64,7 @@ void cammount_serial(void){
             cammount.send_command();
         };
     }
+    cammount_thread_exit_flag = true;
     return;
 }
 
@@ -71,6 +77,7 @@ void stereo_camera_thread_func(Camera* stereo_camera){
 // foveのカメラから目の画像を取得するスレッド (OpenCV)
 void fove_camera(Camera* eye_camera){
     eye_camera->capture();
+    camera_thread_exit_flag = true;
     return;
 }
 
@@ -83,6 +90,7 @@ void obs_camera_func(Camera* obs_camera){
 // foveのディスプレイに色々映すスレッド (OpenGL) 現状はキャリブレーション用の点のみ
 void fove_display(int argc, char* argv[]){
     display.show_graphic(argc, argv);
+    display_thread_exit_flag = true;
     return;
 }
 
@@ -191,7 +199,7 @@ int main(int argc, char *argv[]){
                 fprintf(gaze_log, "%f %f %f %f\n", std::get<0>(disp_gaze), std::get<1>(disp_gaze), std::get<2>(disp_gaze), std::get<3>(disp_gaze));
                 gaze_in_disp_flag = calib.check_gaze_in_disp_flag();
             }else if(mode == 1 && detect_pupil_flag == false){
-                fprintf(gaze_log, "%f %f %f %f\n", -1, -1, -1, -1);
+                fprintf(gaze_log, "%d %d %d %d\n", -1, -1, -1, -1);
                 gaze_in_disp_flag = false;
             }
             i++;
@@ -217,6 +225,9 @@ int main(int argc, char *argv[]){
                 }
             }
         }
+    }
+    while(true){
+        if(display_thread_exit_flag == true && cammount_thread_exit_flag == true && camera_thread_exit_flag == true) break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     return 0;

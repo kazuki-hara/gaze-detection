@@ -13,8 +13,8 @@ data_dir = "/share/home/hara/Data/fove/tmp/"
 pupil_pos_txt_path = data_dir + "pupil0.txt"
 time_txt_path = data_dir + "time0.txt"
 
-pupil_pos_txt_path = "/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt"
-time_txt_path = "/share/home/hara/Data/fove/pupil/hara/200/time0.txt"
+#pupil_pos_txt_path = "/share/home/hara/Data/fove/pupil/hara/200/pupil_ellipse.txt"
+#time_txt_path = "/share/home/hara/Data/fove/pupil/hara/200/time0.txt"
 
 create_figure =  True
 
@@ -43,7 +43,7 @@ class Calibration:
         data_list = f.readlines()
         for str_data in data_list:
             try:
-                lx, ly, rx, ry, i = map(float, str_data[:-1].split())
+                lx, ly, rx, ry = map(float, str_data[:-1].split())
                 self.pupil_list.append([lx, ly, rx, ry])
             except:
                 pass

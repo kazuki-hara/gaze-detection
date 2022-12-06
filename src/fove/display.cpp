@@ -47,7 +47,7 @@ void save_data(void){
     for(unsigned int i = 0; i < gaze_picture_vec.size() - 1; i++){
         std::string image_path = gaze_picture_dir + std::to_string(i) + ".png";
         cv::imwrite(image_path, gaze_picture_vec[i]);
-        std::cout << image_path << " saved!" << std::endl;
+        my_print(image_path + " saved!");
         fprintf(passed_time_log, "%f\n", passd_time_vec[i]);
     }
     fclose(passed_time_log);    
