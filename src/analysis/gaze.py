@@ -5,25 +5,32 @@ import os
 from tqdm import tqdm
 import glob
 import re
+import math
+from utils import lpf, gradient, moving_average, fft
 
-data_dir = "/Users/kazuki/Desktop/fukui_with_image_data/"
+data_dir = "/share/home/hara/Data/fove/20221213/hara_amp_100/"
+data_dir = "/home/hara/data/20221215/02/"
+data_dir = "/tmp/data/"
 
 gaze_data_file_path = data_dir + "gaze1.txt"
 pupil_data_file_path = data_dir + "pupil1.txt"
 time_data_file_path = data_dir + "time1.txt"
 key_data_file_path = data_dir + "key.txt"
 
-image_dir = "/Users/kazuki/Desktop/fukui_with_image_data/image"
+image_dir = data_dir + "image"
 gaze_picture_time_file_path = data_dir + "gaze_picture_time.txt"
 
-plt.rcParams['font.family'] = 'Times New Roman'
+cammount_pos_data_file_path = data_dir + "cammount_pos.txt"
+
+seconds_arc_per_position = 46.2857
+
+#plt.rcParams['font.family'] = 'Times New Roman'
 
 class ImageAnalyser:
     def __init__(self):
         self.image_list, self.image_pictured_time_list = self.read_image_data()
         self.key_data = self.read_key_data()
         self.data_num = len(self.image_list)
-        #print(self.data_num/(max(self.image_pictured_time_list) - min(self.image_pictured_time_list)))
         return
 
     def read_image_data(self):
@@ -55,6 +62,33 @@ class ImageAnalyser:
             data.append(float(line[:-1]))
         return data
 
+
+    def calc_similarity(self, index):
+        res_data = []
+        res_time_data = []
+        if index == "psnr":
+            for i in tqdm(range(self.data_num - 1)):
+                if not np.array_equal(self.image_list[i], self.image_list[i + 1]):
+                    psnr = cv2.PSNR(self.image_list[i], self.image_list[i + 1])
+                    res_data.append(psnr)
+                    res_time_data.append(time_data[i])
+            return res_data, res_time_data
+        elif index == "ssim":
+            for i in tqdm(range(self.data_num - 1)):
+                ssim, _ = cv2.quality.QualitySSIM_compute(self.image_list[i], self.image_list[i + 1])
+                res_data.append(np.mean(np.array(ssim)))
+            return res_data
+        elif index == "mse":
+            for i in tqdm(range(self.data_num - 1)):
+                mse, _ = cv2.quality.QualityMSE_compute(self.image_list[i], self.image_list[i + 1])
+                res_data.append(mse[0])
+            return res_data
+        else:
+            assert True, "評価指標の引数が間違ってる"
+
+
+
+
     
     def calc_psnr(self, data, time_data):
         psnr_list = []
@@ -72,7 +106,7 @@ class ImageAnalyser:
         ssim_list = []
         for i in tqdm(range(self.data_num - 1)):
             ssim, _ = cv2.quality.QualitySSIM_compute(self.image_list[i], self.image_list[i + 1])
-            ssim_list.append(np.mean(np.array(ssim)))
+            ssim_list.append(np.mean(np.array(ssim[:3])))
         return ssim_list
 
     def calc_mse(self):
@@ -81,6 +115,17 @@ class ImageAnalyser:
             mse, _ = cv2.quality.QualityMSE_compute(self.image_list[i], self.image_list[i + 1])
             mse_list.append(mse[0])
         return mse_list
+
+    def moving_average(self, data):
+        span = 10
+        res_data = []
+        for i in range(len(data)):
+            if i < 10:
+                res_data.append(np.mean(data[:i]))
+            else:
+                res_data.append(np.mean(data[i-10:i]))
+        return res_data
+
     
     def make_time_series_figure(self, index):
         fig = plt.figure()
@@ -94,28 +139,31 @@ class ImageAnalyser:
         elif index == "ssim":
             Y = self.calc_ssim()
 
+        Y_ave = lpf(Y, X, 0.1)
         
-        
-        ax.plot(X, Y)
+        ax.plot(X, Y, label = index)
+        ax.plot(X, Y_ave, label = "average")
         for i in range(len(self.key_data)//2):
             start = self.key_data[i*2]
             end = self.key_data[i*2+1]
             ax.axvspan(start, end, color="gray", alpha=0.3)
         ax.set_xlim(0, (max(X)//5 + 1)*5)
-        ax.set_xticks(np.arange(0, (max(X)//5 + 1)*5, 5))
         ax.set_xlabel("time [s]")
         y_label = index.upper()
         if index == "psnr":
             y_label = "PSNR [dB]"
         ax.set_ylabel(y_label)
-        plt.savefig(f"{index}.pdf")
+        ax.legend()
+        plt.savefig(f"./output/image_sim/{index}.pdf")
 
 
 class DataGetter:
-    def __init__(self) -> None:
+    def __init__(self):
         self.gaze_lx, self.gaze_ly, self.gaze_rx, self.gaze_ry = self.read_pos_data(gaze_data_file_path)
         self.pupil_lx, self.pupil_ly, self.pupil_rx, self.pupil_ry = self.read_pos_data(pupil_data_file_path)
+        self.replace_error_data()
         self.time_data = self.read_time_data(time_data_file_path)
+        self.pan_position, self.tilte_position, self.cammount_time_data = self.read_cammount_pos_data(cammount_pos_data_file_path)
         self.key_data = self.read_key_data(key_data_file_path)
 
     def read_pos_data(self, file_path):
@@ -140,34 +188,60 @@ class DataGetter:
         data = []
         for line in txt_data:
             data.append(float(line[:-1]))
-        return data
+        # サンプリングの時間幅を均一にする
+        data_num = len(data)
+        return list(np.linspace(data[0], data[-1], data_num))
 
     def read_key_data(self, key_data_file_path):
         f = open(key_data_file_path, 'r')
         txt_data = f.readlines()
         data = []
+        res_data = []
         for line in txt_data:
             data.append(float(line[:-1]))
-        return data
 
-    def remove_error_data(self, data, time_data, label):
-        res_data = []
-        res_time_data = []
-        pupil_data = None
-        if label == "lx":
-            pupil_data = self.pupil_lx
-        elif label == "ly":
-            pupil_data = self.pupil_ly
-        elif label == "rx":
-            pupil_data = self.pupil_rx
-        elif label == "ry":
-            pupil_data = self.pupil_ry
-        for i, (pupil, x, time) in enumerate(zip(pupil_data, data, self.time_data)):
-            if pupil != -1:
-                res_data.append(x)
-                res_time_data.append(time)
-        return res_data, res_time_data
+        for i in range(len(data)//2):
+            start = data[i*2]
+            end = data[i*2+1]
+            res_data.append([start, end])
+        return res_data
 
+    def read_cammount_pos_data(self, cammount_pos_data_file_path):
+        f = open(cammount_pos_data_file_path, 'r')
+        txt_data = f.readlines()
+        pan_position = []
+        tilte_position = []
+        time_data = []
+        for line in txt_data:
+            data = list(map(float, line[:-1].split(" ")))
+            pan_position.append(int(data[0]))
+            tilte_position.append(int(data[1]))
+            time_data.append(data[2])
+        return pan_position, tilte_position, time_data
+    
+    def _replace_error_data(self, pupil_data_list, gaze_data_list):
+        data_num = len(pupil_data_list)
+        res_pupil_data_list = []
+        res_gaze_data_list = []
+        for i, (pupil, gaze) in enumerate(zip(pupil_data_list, gaze_data_list)):
+            if pupil == -1:
+                if i == 0:
+                    res_pupil_data_list.append(np.mean([x for x in pupil_data_list if x != -1]))
+                    res_gaze_data_list.append(np.mean([x for x in gaze_data_list if x != -1]))
+                else:
+                    res_pupil_data_list.append(pupil_data_list[-1])
+                    res_gaze_data_list.append(gaze_data_list[-1])
+            else:
+                res_pupil_data_list.append(pupil_data_list[i])
+                res_gaze_data_list.append(gaze_data_list[i])
+        return res_pupil_data_list, res_gaze_data_list
+    
+    def replace_error_data(self):
+        self.pupil_lx, self.gaze_lx = self._replace_error_data(self.pupil_lx, self.gaze_lx)
+        self.pupil_ly, self.gaze_ly = self._replace_error_data(self.pupil_ly, self.gaze_ly)
+        self.pupil_rx, self.gaze_rx = self._replace_error_data(self.pupil_rx, self.gaze_rx)
+        self.pupil_ry, self.gaze_ry = self._replace_error_data(self.pupil_ry, self.gaze_ry)
+        
     def remove_outlier_data(self, data, time_data):
         data_arr = np.array(data)
         sigma = 1.5
@@ -182,84 +256,97 @@ class DataGetter:
                 res_data.append(x)
                 res_time_data.append(time)
         return res_data, res_time_data
+
+    def extract_gazing_data(self, data):
+        for i, key_data in enumerate(self.key_data):
+            start = key_data[0]
+            end = key_data[1]
+            start_index =  min([i for i, time in enumerate(self.time_data) if time >= start])
+            end_index =  max([i for i, time in enumerate(self.time_data) if time <= end])
+            gazing_data = data[start_index:end_index + 1]
+            gazing_time_data = self.time_data[start_index:end_index + 1]
+            max_freq = fft(gazing_data, gazing_time_data, save_fig = True, file_name = f"output/non_gaze/fft_{i}.pdf")
+            print(f"gaze {i}: {max_freq} Hz")
+
+
     
-    def sampling(self, data):
-        fove_fps = 120
-        data_fps = len(data) / (max(self.time_data) - min(self.time_data))
-        sampling_rate = int(data_fps / fove_fps)
-        return data[::sampling_rate], self.time_data[::sampling_rate]
+    def extract_not_gazing_data(self, data):
+        for i in range(len(self.key_data) - 1):
+            start = self.key_data[i][1]
+            end = self.key_data[i + 1][0]
+            start_index =  min([i for i, time in enumerate(self.time_data) if time >= start])
+            end_index =  max([i for i, time in enumerate(self.time_data) if time <= end])
+            gazing_data = data[start_index:end_index + 1]
+            gazing_time_data = self.time_data[start_index:end_index + 1]
+            max_freq = fft(gazing_data, gazing_time_data, save_fig = True, file_name = f"output/gaze/fft_{i}.pdf")
+            print(f"non gaze {i}: {max_freq} Hz")
+    
+    def pupil_cam_pos_figure(self, xy="x"):
+        pupil_time = self.time_data
+        came_time = self.cammount_time_data
+        if xy == "x":
+            pupil_pos = [(lx + rx) / 2 for lx, rx in zip(self.pupil_lx, self.pupil_rx)]
+            cam_pos = [position * (seconds_arc_per_position / 3600) for position in self.pan_position]
+        else:
+            pupil_pos = [(ly + ry) / 2 for ly, ry in zip(self.pupil_ly, self.pupil_ry)]
+            cam_pos = [position * (seconds_arc_per_position / 3600) for position in self.tilte_position]
         
-    def sampling_v2(self, data, time_data):
-        data_tmp = []
-        time_data_tmp = []
-        for i in range(len(data)):
-            if i == 0 :
-                data_tmp.append(data[i])
-                time_data_tmp.append(time_data[i])
-            else:
-                if data[i - 1] != data[i] and time_data[i - 1] != time_data[i]:
-                    data_tmp.append(data[i])
-                    time_data_tmp.append(time_data[i])
-        return data_tmp, time_data_tmp
-
-    def sampling_v3(self, data, time_data):
-        data_tmp = []
-        time_data_tmp = []
-        bin_time = 0.2
-        start_time = time_data[0]
-        tmp = []
-        for i in range(len(data)):
-            if time_data[i] < start_time + bin_time:
-                tmp.append(data[i])
-            else:
-                if len(tmp) != 0:
-                    data_tmp.append(sum(tmp)/len(tmp))
-                    time_data_tmp.append(start_time)
-                start_time += bin_time
-                tmp = []
-                tmp.append(data[i])
-        return data_tmp, time_data_tmp
-
-
-
-    def gradient(self, data, time_data):
-        grad_data = []
-        grad_time_data = []
-        for i in tqdm(range(len(data) - 1)):
-            try:
-                grad_data.append((data[i + 1] - data[i]) / (time_data[i + 1] - time_data[i]))
-                grad_time_data.append(time_data[i])
-            except:
-                pass
-        return grad_data, grad_time_data
-
-    
-
-
-    def make_time_series_figure(self, y_data, label, file_name):
-        # gaze, time
-        X = self.time_data
-        Y = y_data
-        Y, X = self.remove_error_data(Y, X, file_name[-6:-4])
-        Y, X = self.remove_outlier_data(Y, X)
-        Y, X = self.sampling_v3(Y, X)
-
-        Y, X = self.gradient(Y, X)
-        Y, X = self.gradient(Y, X)
+        pupil_pos = lpf(pupil_pos, pupil_time, 1)
 
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
-        ax1.plot(X, Y)
         ax1.set_xlabel("time (s)")
-        ax1.set_ylabel(label)
+        if xy == "x":
+            ax1.plot(pupil_time, pupil_pos, label = r"$x_\mathrm{pupil}$")
+            ax1.set_ylabel(r"$x_\mathrm{pupil}$ (px)")
+        else:
+            ax1.plot(pupil_time, pupil_pos, label = r"$y_\mathrm{pupil}$")
+            ax1.set_ylabel(r"$y_\mathrm{pupil}$ (px)")
+        h1, l1 = ax1.get_legend_handles_labels()
+        ax2 = ax1.twinx()
+        if xy == "x":
+            ax2.plot(self.cammount_time_data, cam_pos, color = "orange", label = "camera pan position")
+            ax2.set_ylabel(r"camera pan position (deg)")
+        if xy == "y":
+            ax2.plot(self.cammount_time_data, cam_pos, color = "orange", label = "camera tilte position")
+            ax2.set_ylabel(r"camera tilte position (deg)")
+        h2, l2 = ax2.get_legend_handles_labels()
 
-        for i in range(len(self.key_data)//2):
-            start = self.key_data[i*2]
-            end = self.key_data[i*2+1]
+        for key_data in self.key_data:
+            start = key_data[0]
+            end = key_data[1]
             ax1.axvspan(start, end, color="gray", alpha=0.3)
-            #ax2.axvspan(start, end, color="gray", alpha=0.3)
 
         plt.tight_layout()
+        ax1.legend(h1+h2, l1+l2)
+        file_name = f"./output/pupil_cam_pos/{xy}.pdf"
+        fig.savefig(file_name)
+
+
+    def make_time_series_figure(self, side = "left"):
+        # gaze, time
+        grad_x, X = gradient(self.pupil_lx, self.time_data)  # 微分
+        grad_y, X = gradient(self.pupil_ly, self.time_data)
+        gradY = [math.sqrt(x ** 2 + y ** 2) for x, y in zip(grad_x, grad_y)]
+        gradY = lpf(gradY, X, 1) # lpf
+
+        self.extract_not_gazing_data(gradY)
+        self.extract_gazing_data(gradY)
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
+        ax1.plot(X, gradY, label = r"$\mathrm{d}pupil_\mathrm{left}$")
+        ax1.set_xlabel("time (s)")
+        ax1.set_ylabel(r"$\mathrm{pupil}_\mathrm{left}$ (px/s)")
+
+        for key_data in self.key_data:
+            start = key_data[0]
+            end = key_data[1]
+            ax1.axvspan(start, end, color="gray", alpha=0.3)
+
+        plt.tight_layout()
+        ax1.legend()
+        file_name = "./output/grad/left_eye.pdf"
         fig.savefig(file_name)
 
             
@@ -267,9 +354,13 @@ class DataGetter:
 
 
 if __name__ == "__main__":
+    
     data_getter = DataGetter()
-    data_getter.make_time_series_figure(data_getter.gaze_lx, "grad_x (px)", "output/gaze_lx.pdf")
-    data_getter.make_time_series_figure(data_getter.pupil_lx, "grad_x (px)", "output/pupil_lx.pdf")
+    #data_getter.make_time_series_figure(data_getter.gaze_lx, "grad_x (px)", "output/gaze_lx.pdf")
+    data_getter.make_time_series_figure()
+    data_getter.pupil_cam_pos_figure("x")
+    data_getter.pupil_cam_pos_figure("y")
+    '''
     data_getter.make_time_series_figure(data_getter.gaze_ly, "grad_y (px)", "output/gaze_ly.pdf")
     data_getter.make_time_series_figure(data_getter.pupil_ly, "grad_y (px)", "output/pupil_ly.pdf")
     data_getter.make_time_series_figure(data_getter.gaze_rx, "grad_x (px)", "output/gaze_rx.pdf")
@@ -281,4 +372,3 @@ if __name__ == "__main__":
     image_analyser.make_time_series_figure("mse")
     image_analyser.make_time_series_figure("psnr")
     image_analyser.make_time_series_figure("ssim")
-    '''
